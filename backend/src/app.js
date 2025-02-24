@@ -1,26 +1,26 @@
-import express, { json } from 'express';
-import { config } from 'dotenv';
-import helmet from 'helmet';
-import cors from 'cors';
-import morgan from 'morgan';
-import compression from 'compression';
+const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
+const morgan = require("morgan");
+const compression = require("compression");
+const dotenv = require("dotenv");
 
-config();
+dotenv.config();
 
 const app = express();
 
-app.use(json());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(helmet());
 app.use(compression());
 app.use(morgan("dev"));
 
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    message: "Internal Server Error",
+  });
+});
 
-app.use((err,req,res,next) => {
-    console.error(err.stack);
-    res.status(500).json({
-        message: "Internal Server Error"
-    });
-})
-
-export default app;
+module.exports = app;
