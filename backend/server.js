@@ -6,18 +6,16 @@ const app = require("./src/app");
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
 
-mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    console.log("MongoDB Connected");
-    const server = http.createServer(app);
-    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-  })
-  .catch((err) => {
-    console.error("MongoDB Connection Error:", err);
-    process.exit(1);
-  });
+server.listen(PORT, () => {
+    console.log(`Server running on PORT ${PORT}`);
+})
+
+process.on(() => {
+    console.log("Shutting down server....");
+    server.close(() => {
+        console.log("Server Shut down gracefully.");
+        process.exit(0);
+    })
+})
