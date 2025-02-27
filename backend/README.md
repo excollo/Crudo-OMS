@@ -1,141 +1,158 @@
-# Crudo Platform Backend
+# Crudo Platform - WhatsApp Sales Order Management
 
-## 📌 Project Overview
-Crudo Platform Backend is a **Node.js & Express** powered API that provides authentication, order management, and integration with SwilERP. It follows a modular architecture for scalability and maintainability.
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-90%25-blue)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
----
+# **Crudo Platform**
 
-## 🏗️ Tech Stack
-- **Backend Framework**: Node.js, Express
-- **Database**: MongoDB, Mongoose
-- **Authentication**: JWT, bcrypt
-- **Validation**: express-validator, Joi
-- **Logging & Monitoring**: Winston, Morgan
-- **Security**: Helmet, CORS, express-rate-limit
+## Overview
+The **Crudo Platform** is an advanced **Order Management System** built for the **WhatsApp Sales Channel**, integrating seamlessly with **SwilERP** for inventory, billing, and fulfillment. It provides a structured and efficient way to manage orders, process payments, and track customer interactions via WhatsApp.
 
----
+### Key Features
+### **Authentication & Security**
+- JWT & OAuth authentication with **Role-Based Access Control (RBAC)**.
+- Secure token storage, rate limiting, brute-force prevention.
+- **SwilERP Single Sign-On (SSO)** support.
 
-## 📂 Folder Structure
-```
-crudo-backend/
-├── src/
-│   ├── config/            # Configurations (env, database, logging)
-│   │   ├── db.js
-│   │   ├── logger.js
-│   │   ├── env.js
-│   ├── controllers/       # Handle HTTP requests
-│   │   ├── authController.js
-│   │   ├── orderController.js
-│   ├── middleware/        # Authentication, logging, validation
-│   │   ├── authMiddleware.js
-│   │   ├── errorMiddleware.js
-│   ├── models/            # Mongoose models
-│   │   ├── User.js
-│   │   ├── Order.js
-│   ├── routes/            # Define API routes
-│   │   ├── authRoutes.js
-│   │   ├── orderRoutes.js
-│   ├── services/          # Business logic
-│   │   ├── authService.js
-│   │   ├── orderService.js
-│   ├── utils/             # Utility functions
-│   │   ├── generateToken.js
-│   ├── workers/             # Background jobs, queues
-│   │   ├── 
-│   ├── app.js             # Express app setup
-│   ├── server.js          # Server entry point
-├── .env                   # Environment variables
-├── .gitignore             # Ignore node_modules, .env, etc.
-├── package.json
-```
+### **Order Management & Tracking**
+- **WhatsApp-based order placement** and tracking.
+- Real-time **inventory syncing with SwilERP**.
+- Digital prescription management with **PDF generation & secure storage**.
+
+### **Customer Chat & Interaction**
+- **Session-based chat storage** (Redis for short-term, MongoDB for long-term).
+- WhatsApp API integration for **order inquiries and tracking**.
+- **Automated chatbot support** for common customer queries.
+
+### **Background Jobs & Workers**
+- **Order synchronization** with SwilERP.
+- **Chat session management** for returning customers.
+- **Notification system** (Email/SMS/WhatsApp alerts).
+
+### **Logging & Monitoring**
+- Request logging, error tracking, authentication logs.
+- **Background job monitoring** using BullMQ.
+- **Database & API performance tracking**.
 
 ---
 
-## 🚀 Installation & Setup
+## **Tech Stack**
 
-### 1️⃣ Clone the Repository
+### **Backend**
+- **Node.js with Express.js**
+- **MongoDB + Mongoose ORM**
+- **Redis for caching & session storage**
+- **BullMQ for background jobs**
+- **SwilERP & WhatsApp API integrations**
+
+### **Frontend**
+- **React.js** with **MUI + Tailwind CSS**
+- **React Query** for state management
+- **Axios** for API handling
+- **React Hook Form + Zod** for validation
+
+### **DevOps & Security**
+- **Docker & Kubernetes (AKS)** for containerization
+- **CI/CD with GitHub Actions & ArgoCD**
+- **Reverse Proxy: NGINX + Traefik**
+- **Monitoring: Prometheus, Grafana, Loki**
+- **Security: Vault by HashiCorp, Cloudflare DDoS Protection**
+
+---
+
+## **Installation & Setup**
+### **1. Clone the Repository**
 ```sh
-git clone https://github.com/excollo/Crudo-OMS.git
-cd backend
+  git clone https://github.com/excollo/Crudo-OMS.git
+  cd crudo-platform
 ```
 
-### 2️⃣ Install Dependencies
+### **2. Install Dependencies**
 ```sh
-npm install
+  npm install  # Backend dependencies
+  cd frontend && npm install  # Frontend dependencies
 ```
 
-### 3️⃣ Configure Environment Variables
-Create a `.env` file in the root directory and add:
-```
-PORT=3000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-```
-
-### 4️⃣ Start the Server
+### **3. Configure Environment Variables**
+Copy `.env.example` to `.env` and update required values.
 ```sh
-npm start
+  cp .env.example .env
 ```
-Or for development mode with auto-restart:
+
+### **4. Start Development Servers**
 ```sh
-npm run dev
+  npm run dev  # Start backend server
+  cd frontend && npm start  # Start frontend server
+```
+
+### **5. Run Background Workers**
+```sh
+  npm run worker
+```
+
+### **6. Run Tests**
+```sh
+  npm test
 ```
 
 ---
 
-## 🔑 Authentication (JWT Based)
-| Endpoint       | Method | Description |
-|--------------|--------|------------------|
-| `/api/auth/register` | POST | User registration |
-| `/api/auth/login` | POST | User login |
+## **Folder Structure**
 
-### 🔐 **Protected Routes**
-All routes that require authentication must include an `Authorization: Bearer <token>` header.
-
----
-
-## 📦 Order Management
-| Endpoint       | Method | Description |
-|--------------|--------|------------------|
-| `/api/orders/` | POST | Create an order (Protected) |
-| `/api/orders/:id` | GET | Get order details (Protected) |
-
----
-
-## 🔍 Logging & Error Handling
-- **Winston & Morgan** used for logging API requests.
-- Centralized **error handling middleware** for structured error responses.
-
----
-
-## 🛡️ Security Best Practices Implemented
-✅ **Helmet** for setting security-related HTTP headers.  
-✅ **CORS** enabled for cross-origin resource sharing.  
-✅ **Rate Limiting** to prevent brute force attacks.  
-✅ **Input Validation** using express-validator.  
-
----
-
-## 🛠️ Development Tools & Scripts
-| Command | Description |
-|--------------|------------------|
-| `npm run dev` | Start development server with Nodemon |
-| `npm start` | Start production server |
-| `npm test` | Run tests |
+```
+crudo-platform/
+│-- backend/
+│   ├── src/
+│   │   ├── controllers/
+│   │   ├── services/
+│   │   ├── models/
+│   │   ├── middlewares/
+│   │   ├── workers/
+│   │   ├── utils/
+│   │   ├── logs/
+│   │   ├── routes/
+│   │   ├── config/
+│   │   ├── sanitization/
+│   │   ├── app.js
+│   ├── package.json
+│   ├── server.js
+│-- frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── hooks/
+│   │   ├── store/
+│   │   ├── services/
+│   ├── package.json
+│-- deploy/
+│   ├── k8s/
+│   ├── terraform/
+│-- docs/
+│   ├── API-Specs.md
+│-- README.md
+```
 
 ---
 
-## 📢 Future Enhancements
-- **RBAC (Role-Based Access Control)** for user permissions
-- **SwilERP Integration** for seamless order management
+## **API Documentation**
+Refer to [API-Specs.md](./docs/API-Specs.md) for detailed API endpoints.
 
 ---
 
-## 📄 License
+## **Contributing**
+We welcome contributions! Follow these steps:
+1. Fork the repository.
+2. Create a feature branch.
+3. Submit a pull request with detailed changes.
+
+---
+
+## **License**
 This project is licensed under the **MIT License**.
 
 ---
 
-## 👨‍💻 Author
-
-
+## **Contact**
+- **Support Email:** support@crudoplatform.com
+- **GitHub Issues:** [Report an issue](https://github.com/excollo/Crudo-OMS/issues)
