@@ -12,6 +12,20 @@ const signup = async (req, res) => {
     }
 }
 
+const signin = async (req, res) => {
+    try {
+       const { user, accessToken, refreshToken } = await authService.signin(
+         req.body
+       );
+       authLogger.info(`User logged in: ${user.email}`);
+       res.json({ user, accessToken, refreshToken });
+     } catch (error) {
+       authLogger.error(`Signin error: ${error.message}`);
+       res.status(401).json({ error: error.message });
+    }
+}
+
 module.exports = {
-    signup
+    signup,
+    signin
 }

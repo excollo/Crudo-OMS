@@ -1,3 +1,4 @@
+const { jwtConfig } = require("../config/config");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
@@ -9,6 +10,23 @@ const signup = async (userData) => {
     return user;
 }
 
+const signin = async ({email, password}) => {
+    const user = await User.findOne({ email }).select("+password");
+    if (!user) throw new Error("Invalid credentials");
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) throw new Error("Invalid credentials");
+
+    const accessToken = jwt.sign({ id: user._id }, jwtConfig.secret, {
+      expiresIn: jwtConfig.expiresIn,
+    });
+    const refreshToken = jwt.sign({ id: user._id }, jwtConfig.refreshSecret, {
+      expiresIn: jwtConfig.refreshExpiresIn,
+    });
+
+    return { user, accessToken, refreshToken };
+}
+
 module.exports = {
-    signup
+    signup,
+    signin
 }

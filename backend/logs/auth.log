@@ -1,2 +1,13 @@
 {"level":"error","message":"Signup error: User already Exists","timestamp":"2025-03-03T18:58:13.871Z"}
 {"level":"info","message":"User signed up: johndoee@example.com","timestamp":"2025-03-03T18:58:26.376Z"}
+{"level":"error","message":"Signin error: jwtConfig is not defined","timestamp":"2025-03-03T19:10:56.551Z"}
+{"level":"error","message":"Signin error: jwtConfig is not defined","timestamp":"2025-03-03T19:14:36.718Z"}
+{"level":"error","message":"Signin error: jwtConfig is not defined","timestamp":"2025-03-03T19:14:56.034Z"}
+{"level":"error","message":"Signin error: jwtConfig is not defined","timestamp":"2025-03-03T19:15:48.193Z"}
+{"level":"error","message":"Signin error: jwtConfig is not defined","timestamp":"2025-03-03T19:17:54.601Z"}
+{"level":"error","message":"Signin error: jwtConfig is not defined","timestamp":"2025-03-03T19:18:20.944Z"}
+{"level":"error","message":"Signin error: jwtConfig is not defined","timestamp":"2025-03-03T19:18:43.877Z"}
+{"level":"error","message":"Signin error: jwtConfig is not defined","timestamp":"2025-03-03T19:19:16.411Z"}
+{"level":"error","message":"Signin error: jwtConfig is not defined","timestamp":"2025-03-03T19:23:45.150Z"}
+{"level":"error","message":"Signin error: jwtConfig is not defined","timestamp":"2025-03-03T19:24:51.045Z"}
+{"level":"info","message":"User logged in: johndoee@example.com","timestamp":"2025-03-03T19:26:53.097Z"}

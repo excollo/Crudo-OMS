@@ -1,13 +1,13 @@
-require('dotenv').config();
+require("dotenv").config();
 
-module.exports = {
+const config = {
   port: process.env.PORT || 3000,
   mongoURI: process.env.MONGO_URI,
-  jwt: {
-    secret: process.env.JWT_SECRET,
-    refreshSecret: process.env.JWT_REFRESH_SECRET,
-    expiresIn: process.env.JWT_EXPIRES_IN,
-    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
+  jwtConfig: {
+    secret: process.env.JWT_SECRET || "defaultSecretKey",
+    refreshSecret: process.env.JWT_REFRESH_SECRET || "defaultRefreshSecret",
+    expiresIn: process.env.JWT_EXPIRES_IN || "15m",
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
   },
   smtp: {
     host: process.env.SMTP_HOST,
@@ -17,3 +17,7 @@ module.exports = {
   },
   frontendURL: process.env.FRONTEND_URL,
 };
+
+console.log("CONFIG LOADED:", config); // ✅ DEBUG LOGGING
+
+module.exports = config;
