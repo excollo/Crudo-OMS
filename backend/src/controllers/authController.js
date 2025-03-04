@@ -1,5 +1,5 @@
 const authService = require("../services/authService");
-const authLogger = require("../loggers/authLogger");
+const { authLogger } = require("../loggers/authLogger");
 
 const signup = async (req, res) => {
     try {
@@ -66,24 +66,36 @@ const logout = async (req, res) => {
 };
 
 const requestPasswordReset = async (req, res) => {
-  try{
-    await authService.requestPasswordReset(req.body.email);
+  try {
+    const { email } = req.body;
+    await authService.requestPasswordReset(email);
+    authLogger.info(`Password reset link sent to ${email}`);
     res.json({
-      message: "Password reset link sent"
-    })
+      message: "Password reset link sent to registered email.",
+    });
+  } catch (error) {
+    authLogger.error("Error requesting password reset: ", error);
+    res.status(500).json({ error: "Internal server error" });
   }
-  catch(error){
-    res.status(500).json({
-      error: error.message
-    })
-  }
-}
+};
 
+const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    await authService.resetPassword(token, newPassword);
+    authLogger.info("Password successfully reset");
+    res.json({ message: "Password successfully reset. You can now log in." });
+  } catch (error) {
+    authLogger.error("Error resetting password: ", error);
+    res.status(400).json({ error: error.message });
+  }
+};
 
 module.exports = {
     signup,
     signin,
     refreshToken,
     logout,
-    requestPasswordReset
+    requestPasswordReset,
+    resetPassword
 }

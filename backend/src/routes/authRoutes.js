@@ -10,5 +10,6 @@ router.post("/signin", logAuthActivity ,authController.signin);
 router.post("/refresh-token", authController.refreshToken);
 router.post("/logout", authMiddleware.verifyToken, authController.logout);
 router.post("/request-password-reset", logAuthActivity , authController.requestPasswordReset);
+router.post("/reset-password", logAuthActivity ,authController.resetPassword);
 
 module.exports = router;
