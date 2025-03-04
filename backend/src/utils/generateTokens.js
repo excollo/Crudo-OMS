@@ -1,7 +1,4 @@
 const {jwtConfig} = require("../config/config");
-
-console.log("JWT CONFIG LOADED:", jwtConfig);
-
 const jwt = require("jsonwebtoken");
 
 const generateAccessToken = (user) => {
