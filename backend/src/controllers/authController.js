@@ -49,8 +49,26 @@ const refreshToken = async (req,res) => {
   }
 }
 
+const logout = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ error: "Refresh token is required" });
+    }
+
+    await authService.logout(req.user.id, refreshToken);
+
+    res.json({ message: "Logged out successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 module.exports = {
     signup,
     signin,
-    refreshToken
+    refreshToken,
+    logout
 }

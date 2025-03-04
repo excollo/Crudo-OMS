@@ -49,8 +49,16 @@ const refreshToken = async (token) => {
   return { accessToken, refreshToken };
 };
 
+const logout = async (userId, refreshToken) => {
+  await User.updateOne(
+    { _id: userId }, // Find user by ID
+    { $pull: { refreshTokens: { token: refreshToken } } } // Remove the refreshToken
+  );
+};
+
 module.exports = {
   signup,
   signin,
   refreshToken,
+  logout
 };

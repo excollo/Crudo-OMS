@@ -12,3 +12,6 @@
 {"level":"error","message":"Signin error: jwtConfig is not defined","timestamp":"2025-03-03T19:24:51.045Z"}
 {"level":"info","message":"User logged in: johndoee@example.com","timestamp":"2025-03-03T19:26:53.097Z"}
 {"level":"info","message":"User logged in: johndoee@example.com","timestamp":"2025-03-04T04:46:52.387Z"}
+{"level":"info","message":"User logged in: johndoee@example.com","timestamp":"2025-03-04T05:20:31.017Z"}
+{"level":"info","message":"User logged in: johndoee@example.com","timestamp":"2025-03-04T05:39:26.710Z"}
+{"level":"info","message":"User logged in: johndoee@example.com","timestamp":"2025-03-04T05:40:31.170Z"}
