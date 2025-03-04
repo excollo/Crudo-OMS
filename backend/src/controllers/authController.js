@@ -65,10 +65,25 @@ const logout = async (req, res) => {
   }
 };
 
+const requestPasswordReset = async (req, res) => {
+  try{
+    await authService.requestPasswordReset(req.body.email);
+    res.json({
+      message: "Password reset link sent"
+    })
+  }
+  catch(error){
+    res.status(500).json({
+      error: error.message
+    })
+  }
+}
+
 
 module.exports = {
     signup,
     signin,
     refreshToken,
-    logout
+    logout,
+    requestPasswordReset
 }

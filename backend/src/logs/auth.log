@@ -1,0 +1,4 @@
+{"endpoint":"/api/auth/request-password-reset","ip":"::1","level":"info","message":"Authentication Attempt","method":"POST","timestamp":"2025-03-04 12:00:54","userEmail":"hello@gmail.com"}
+{"endpoint":"/api/auth/request-password-reset","ip":"::1","level":"info","message":"Authentication Attempt","method":"POST","timestamp":"2025-03-04 12:01:14","userEmail":"yashjain30102000@gmail.com"}
+{"endpoint":"/api/auth/request-password-reset","ip":"::1","level":"info","message":"Authentication Attempt","method":"POST","timestamp":"2025-03-04 12:01:33","userEmail":"hello1@gmail.com"}
+{"endpoint":"/api/auth/request-password-reset","ip":"::1","level":"info","message":"Authentication Attempt","method":"POST","timestamp":"2025-03-04 12:02:54","userEmail":"hello1@gmail.com"}
