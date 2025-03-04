@@ -18,6 +18,4 @@ const config = {
   frontendURL: process.env.FRONTEND_URL,
 };
 
-console.log("CONFIG LOADED:", config); // ✅ DEBUG LOGGING
-
 module.exports = config;
