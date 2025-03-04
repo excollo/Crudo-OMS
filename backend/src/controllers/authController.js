@@ -25,7 +25,32 @@ const signin = async (req, res) => {
     }
 }
 
+const refreshToken = async (req,res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ message: "Refresh token is required" });
+    }
+
+    // Call the service to generate new tokens
+    const tokens = await authService.refreshToken(refreshToken);
+
+    if (!tokens) {
+      return res
+        .status(401)
+        .json({ message: "Invalid or expired refresh token" });
+    }
+
+    res.json(tokens);
+  } catch (error) {
+    console.error("Refresh token error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
 module.exports = {
     signup,
-    signin
+    signin,
+    refreshToken
 }
