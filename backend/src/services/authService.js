@@ -1,84 +1,90 @@
-const { jwtConfig } = require("../config/config");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const User = require("../models/User");
 const { sendEmail } = require("../utils/sendEmail");
+const { jwtConfig } = require("../config/config");
+const sanitizeRequest = require("../sanitize/sanitize");
+const { BadRequestError, UnauthorizedError } = require("../utils/customErrors");
 
+// Helper function to generate JWT tokens
+const generateTokens = (userId) => {
+  const accessToken = jwt.sign({ id: userId }, jwtConfig.secret, {
+    expiresIn: jwtConfig.expiresIn,
+  });
+  const refreshToken = jwt.sign({ id: userId }, jwtConfig.refreshSecret, {
+    expiresIn: jwtConfig.refreshExpiresIn,
+  });
+
+  return { accessToken, refreshToken };
+};
+
+// Sign-up service
 const signup = async (userData) => {
+  // Sanitize input to prevent NoSQL injection
+  sanitizeRequest({ body: userData });
+
   const userExists = await User.findOne({ email: userData.email });
-  if (userExists) throw new Error("User already Exists");
+  if (userExists) throw new BadRequestError("User already exists");
+
   const user = await User.create(userData);
   return user;
 };
 
+// Sign-in service
 const signin = async ({ email, password }) => {
-  const user = await User.findOne({ email }).select("+password");
-  if (!user) throw new Error("Invalid credentials");
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) throw new Error("Invalid credentials");
+  sanitizeRequest({ body: { email, password } });
 
-  const accessToken = jwt.sign({ id: user._id }, jwtConfig.secret, {
-    expiresIn: jwtConfig.expiresIn,
-  });
-  const refreshToken = jwt.sign({ id: user._id }, jwtConfig.refreshSecret, {
-    expiresIn: jwtConfig.refreshExpiresIn,
-  });
+  const user = await User.findOne({ email }).select("+password");
+  if (!user) throw new UnauthorizedError("Invalid credentials");
+
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) throw new UnauthorizedError("Invalid credentials");
+
+  // Generate tokens
+  const { accessToken, refreshToken } = generateTokens(user._id);
+
+  // Store refresh token in user document
+  user.refreshTokens.push({ token: refreshToken, createdAt: Date.now() });
+  await user.save();
 
   return { user, accessToken, refreshToken };
 };
 
+// Refresh token service
 const refreshToken = async (token) => {
+  if (!token) throw new UnauthorizedError("Refresh token is required");
+
   const decoded = jwt.verify(token, jwtConfig.refreshSecret);
-  const accessToken = jwt.sign(
-    {
-      id: decoded.id,
-    },
-    jwtConfig.secret,
-    {
-      expiresIn: jwtConfig.expiresIn,
-    }
-  );
-  const refreshToken = jwt.sign(
-    {
-      id: decoded.id,
-    },
-    jwtConfig.refreshSecret,
-    {
-      expiresIn: jwtConfig.refreshExpiresIn,
-    }
-  );
-  return { accessToken, refreshToken };
+  return generateTokens(decoded.id);
 };
 
+// Logout service
 const logout = async (userId, refreshToken) => {
   await User.updateOne(
-    { _id: userId }, // Find user by ID
-    { $pull: { refreshTokens: { token: refreshToken } } } // Remove the refreshToken
+    { _id: userId },
+    { $pull: { refreshTokens: { token: refreshToken } } }
   );
 };
 
+// Password reset request
 const requestPasswordReset = async (email) => {
+  sanitizeRequest({ body: { email } });
+
   const user = await User.findOne({ email });
+  if (!user) throw new BadRequestError("User not found");
 
-  if (!user) throw new Error("User not found");
-
-  // Generate a random reset token
+  // Generate secure reset token
   const resetToken = crypto.randomBytes(32).toString("hex");
-
-  // Hash the token before storing it
-  const hashedToken = crypto
+  user.resetPasswordToken = crypto
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
-
-  // Store the hashed token in the database
-  user.resetPasswordToken = hashedToken;
-  user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // Expires in 10 minutes
+  user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 min expiry
 
   await user.save();
 
-  // Send the reset email with the **RAW token**
+  // Send reset email
   const resetURL = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
   await sendEmail(
     user.email,
@@ -89,23 +95,21 @@ const requestPasswordReset = async (email) => {
   return { message: "Password reset email sent" };
 };
 
+// Reset password service
 const resetPassword = async (token, newPassword) => {
+  sanitizeRequest({ body: { newPassword } });
 
-  // Instead of hashing again, directly use the received token for lookup
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
   const user = await User.findOne({
-    resetPasswordToken: token,
+    resetPasswordToken: hashedToken,
     resetPasswordExpires: { $gt: Date.now() },
   });
 
-  if (!user) {
-    console.error("Invalid or Expired Token");
-    throw new Error("Invalid or expired token");
-  }
+  if (!user) throw new BadRequestError("Invalid or expired token");
 
-  // Hash new password
+  // Hash and update password
   user.password = await bcrypt.hash(newPassword, 10);
-
-  // Clear reset token fields
   user.resetPasswordToken = undefined;
   user.resetPasswordExpires = undefined;
 
@@ -119,5 +123,5 @@ module.exports = {
   refreshToken,
   logout,
   requestPasswordReset,
-  resetPassword
+  resetPassword,
 };

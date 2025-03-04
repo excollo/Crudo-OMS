@@ -1,24 +1,42 @@
-const jwt = require('jsonwebtoken');
-const {jwtConfig} = require("../config/config");
+const jwt = require("jsonwebtoken");
+const { jwtConfig } = require("../config/config");
 
-const verifyToken = (req,res,next) => {
-    const token = req.header("Authorization")?.split(" ")[1];
-    if(!token) return res.status(401).json({
-        error: "Unauthorized"
-    })
+// Function to extract and validate token from request headers
+const extractToken = (req) => {
+  const authHeader = req.header("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+  return authHeader.split(" ")[1];
+};
 
-    try{
-        const decoded = jwt.verify(token, jwtConfig.secret);
-        req.user = decoded;
-        next();
-    }
-    catch(error){
-        res.status(403).json({
-            error: "Invalid Token"
+// Middleware for verifying JWT
+const verifyToken = (req, res, next) => {
+  const token = extractToken(req);
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized - No token provided" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, jwtConfig.secret);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ error: "Unauthorized - Token expired" });
+    } else if (error.name === "JsonWebTokenError") {
+      return res.status(403).json({ error: "Forbidden - Invalid token" });
+    } else {
+      return res
+        .status(500)
+        .json({
+          error:
+            process.env.NODE_ENV === "development"
+              ? error.message
+              : "Internal Server Error",
         });
     }
-}
+  }
+};
 
-module.exports = {
-    verifyToken
-}
+module.exports = { verifyToken };

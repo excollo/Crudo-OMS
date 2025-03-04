@@ -1,21 +1,37 @@
 require("dotenv").config();
 
+const assertConfig = (key, value) => {
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+};
+
 const config = {
   port: process.env.PORT || 3000,
   mongoURI: process.env.MONGO_URI,
   jwtConfig: {
-    secret: process.env.JWT_SECRET || "defaultSecretKey",
-    refreshSecret: process.env.JWT_REFRESH_SECRET || "defaultRefreshSecret",
+    secret: process.env.JWT_SECRET,
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN || "15m",
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
   },
   smtp: {
     host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
+    port: Number(process.env.SMTP_PORT) || 587, // Convert to number, default to 587
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
   frontendURL: process.env.FRONTEND_URL,
 };
+
+// Validate required config values
+[
+  "MONGO_URI",
+  "JWT_SECRET",
+  "JWT_REFRESH_SECRET",
+  "SMTP_HOST",
+  "SMTP_USER",
+  "SMTP_PASS",
+].forEach((key) => assertConfig(key, process.env[key]));
 
 module.exports = config;
