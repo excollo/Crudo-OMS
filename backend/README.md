@@ -70,7 +70,7 @@ The **Crudo Platform** is an advanced **Order Management System** built for the 
 
 ### **2. Install Dependencies**
 ```sh
-  npm install  # Backend dependencies
+  cd backend && npm install  # Backend dependencies
   cd frontend && npm install  # Frontend dependencies
 ```
 
@@ -88,7 +88,8 @@ Copy `.env.example` to `.env` and update required values.
 
 ### **5. Run Background Workers**
 ```sh
-  npm run worker
+  npm run start:order-worker  # Start order processing worker
+  npm run start:chat-worker  # Start chat session worker
 ```
 
 ### **6. Run Tests**
@@ -138,6 +139,58 @@ crudo-platform/
 ## **API Documentation**
 Refer to [API-Specs.md](./docs/API-Specs.md) for detailed API endpoints.
 
+### **Sample API Response**
+```json
+{
+  "orderId": "12345",
+  "status": "Processing",
+  "customer": {
+    "name": "John Doe",
+    "phone": "+1234567890"
+  }
+}
+```
+
+---
+
+## **Database Schema Overview**
+
+### **Orders Collection**
+```json
+{
+  "_id": "ObjectId",
+  "customerId": "ObjectId",
+  "items": [
+    { "medicine": "Paracetamol", "quantity": 2 }
+  ],
+  "status": "Processing",
+  "createdAt": "ISODate",
+  "updatedAt": "ISODate"
+}
+```
+
+### **Chat Sessions Collection**
+```json
+{
+  "_id": "ObjectId",
+  "customerId": "ObjectId",
+  "messages": [
+    { "text": "Do you have aspirin?", "timestamp": "ISODate" }
+  ],
+  "sessionActive": true
+}
+```
+
+---
+
+## **System Requirements**
+- **Node.js 18+**
+- **MongoDB 5.x**
+- **Redis 7.x**
+- **SwilERP API access**
+- **WhatsApp Business API setup**
+- **SMTP credentials for email notifications**
+
 ---
 
 ## **Contributing**
@@ -156,3 +209,4 @@ This project is licensed under the **MIT License**.
 ## **Contact**
 - **Support Email:** support@crudoplatform.com
 - **GitHub Issues:** [Report an issue](https://github.com/excollo/Crudo-OMS/issues)
+

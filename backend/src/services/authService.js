@@ -2,10 +2,11 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const User = require("../models/User");
+const {generateAccessToken, generateRefreshToken} = require("../utils/generateTokens");
+const { UnauthorizedError, ConflictError, BadRequestError } = require("../utils/customErrors");
 const { sendEmail } = require("../utils/sendEmail");
 const { jwtConfig } = require("../config/config");
 const sanitizeRequest = require("../sanitize/sanitize");
-const { BadRequestError, UnauthorizedError } = require("../utils/customErrors");
 
 // Helper function to generate JWT tokens
 const generateTokens = (userId) => {
@@ -21,45 +22,89 @@ const generateTokens = (userId) => {
 
 // Sign-up service
 const signup = async (userData) => {
-  // Sanitize input to prevent NoSQL injection
-  sanitizeRequest({ body: userData });
+  if (!userData.role || !["admin", "pharmacist"].includes(userData.role)) {
+    userData.role = "admin"; // Default role
+  }
 
   const userExists = await User.findOne({ email: userData.email });
-  if (userExists) throw new BadRequestError("User already exists");
-
+  if (userExists) throw new ConflictError("User already exists");
   const user = await User.create(userData);
   return user;
 };
 
 // Sign-in service
 const signin = async ({ email, password }) => {
-  sanitizeRequest({ body: { email, password } });
+  const user = await User.findOne({ email }).select(
+    "+password +twoFactorMethod"
+  );
+  if (!user || !(await bcrypt.compare(password, user.password)))
+    throw new UnauthorizedError("Invalid credentials");
 
-  const user = await User.findOne({ email }).select("+password");
-  if (!user) throw new UnauthorizedError("Invalid credentials");
+  if (user.twoFactorMethod !== "disabled") {
+    // Generate and send 2FA token
+    const otpToken = user.generateTwoFactorToken();
+    await user.save();
 
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) throw new UnauthorizedError("Invalid credentials");
+    // Send OTP via email
+    await sendEmail(
+      user.email,
+      "Login Verification Code",
+      `Your login verification code is: ${otpToken}. 
+       This code will expire in 10 minutes.`
+    );
 
-  // Generate tokens
-  const { accessToken, refreshToken } = generateTokens(user._id);
+    // Return user ID for 2FA verification
+    return {
+      requiresTwoFactor: true,
+      userId: user._id,
+    };
+  }
 
-  // Store refresh token in user document
-  user.refreshTokens.push({ token: refreshToken, createdAt: Date.now() });
-  await user.save();
+  const accessToken = generateAccessToken(user._id);
+  const refreshToken = generateRefreshToken(user._id);
 
   return { user, accessToken, refreshToken };
 };
 
-// Refresh token service
+
+const verifyTwoFactorLogin = async (email, token) => {
+  // Find user by email
+  const user = await User.findOne({ email }).select(
+    "+twoFactorTemporaryToken +twoFactorTokenExpires"
+  );
+
+  if (!user) {
+    throw new BadRequestError("User not found");
+  }
+
+  // Validate token
+  if (!user.validateTwoFactorToken(token)) {
+    throw new UnauthorizedError("Invalid or expired verification code");
+  }
+
+  // Clear temporary token after successful verification
+  user.twoFactorTemporaryToken = user.twoFactorTokenExpires = undefined;
+  await user.save();
+
+  return {
+    user,
+    generateAccessToken,
+    generateRefreshToken,
+  };
+};
+
 const refreshToken = async (token) => {
   if (!token) throw new UnauthorizedError("Refresh token is required");
 
   const decoded = jwt.verify(token, jwtConfig.refreshSecret);
-  return generateTokens(decoded.id);
+  const user = await User.findById(decoded.id).select("+refreshTokens");
+  
+  const newAccessToken = generateAccessToken(user._id);
+  const newRefreshToken = generateRefreshToken(user._id);
+
+  return { newAccessToken, newRefreshToken };
 };
 
-// Logout service
 const logout = async (userId, refreshToken) => {
   await User.updateOne(
     { _id: userId },
@@ -74,7 +119,9 @@ const requestPasswordReset = async (email) => {
   const user = await User.findOne({ email });
   if (!user) throw new BadRequestError("User not found");
 
-  // Generate secure reset token
+  if (!user) throw new BadRequestError("User not found");
+
+  // Generate a random reset token
   const resetToken = crypto.randomBytes(32).toString("hex");
   user.resetPasswordToken = crypto
     .createHash("sha256")
@@ -124,4 +171,5 @@ module.exports = {
   logout,
   requestPasswordReset,
   resetPassword,
+  verifyTwoFactorLogin
 };

@@ -2,26 +2,34 @@ const { createLogger, format, transports } = require("winston");
 const fs = require("fs");
 const path = require("path");
 
-// Ensure the logs directory exists asynchronously
+// Define log directory and file path
 const logDir = path.join(__dirname, "../logs");
-fs.promises.mkdir(logDir, { recursive: true }).catch(console.error);
+const logFilePath = path.join(logDir, "auth.log");
 
-// Determine log level from environment variable (default: "info")
-const logLevel = process.env.LOG_LEVEL || "info";
+// Ensure the logs directory exists
+fs.mkdirSync(logDir, { recursive: true });
 
-// Winston logger configuration
+const logFormat = format.combine(
+  format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+  format.json()
+);
+
+// Console-friendly format
+const consoleFormat = format.combine(
+  format.colorize(),
+  format.printf(
+    ({ timestamp, level, message }) => `${timestamp} [${level}]: ${message}`
+  )
+);
+
+// Create logger instance
 const authLogger = createLogger({
-  level: logLevel,
-  format: format.combine(
-    format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
-    format.json()
-  ),
+  level: "info",
+  format: logFormat,
   transports: [
-    new transports.Console({
-      format: format.combine(format.colorize(), format.simple()),
-    }),
+    new transports.Console({ format: consoleFormat }),
     new transports.File({
-      filename: path.join(logDir, "auth.log"),
+      filename: logFilePath,
       maxsize: 5 * 1024 * 1024, // 5MB log rotation
       maxFiles: 5, // Keep last 5 logs
       tailable: true, // Rotate logs without breaking the file stream
@@ -32,22 +40,13 @@ const authLogger = createLogger({
 
 // Middleware to log authentication attempts securely
 const logAuthActivity = (req, res, next) => {
-  try {
-    const maskedEmail = req.body?.email
-      ? req.body.email.replace(/(.{2}).+(@.+)/, "$1****$2")
-      : "N/A"; // Mask email
-    const maskedIP = req.ip ? req.ip.replace(/\.\d+$/, ".***") : "N/A"; // Mask last part of IP
-
-    authLogger.info({
-      message: "Authentication Attempt",
-      method: req.method,
-      endpoint: req.originalUrl,
-      ip: maskedIP,
-      userEmail: maskedEmail,
-    });
-  } catch (error) {
-    authLogger.error(`Logging error: ${error.message}`);
-  }
+  authLogger.info({
+    message: "Authentication Attempt",
+    method: req.method,
+    endpoint: req.originalUrl,
+    ip: req.ip,
+    userEmail: req.body?.email ?? "N/A",
+  });
   next();
 };
 

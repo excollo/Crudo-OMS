@@ -31,13 +31,12 @@ const UserSchema = new mongoose.Schema(
       type: String,
       enum: ["admin", "pharmacist"],
       default: "admin",
-      immutable: true, // Prevents role updates
+      required: false
     },
     isActive: {
       type: Boolean,
       default: true,
     },
-
     // Two-Factor Authentication Fields
     twoFactorMethod: {
       type: String,
@@ -56,7 +55,10 @@ const UserSchema = new mongoose.Schema(
       type: Date,
       select: false,
     },
-
+    isDeleted: {
+      type: Boolean,
+      default: false, // Soft delete implementation
+    },
     refreshTokens: [
       {
         token: { type: String, required: true },
@@ -92,9 +94,17 @@ UserSchema.set("toJSON", {
   },
 });
 
+// Virtual for account locked status
+UserSchema.virtual('isLocked').get(function() {
+  return !!(this.lockUntil && this.lockUntil > Date.now());
+});
+
+
 // Hash password before saving
 UserSchema.pre("save", async function (next) {
+  // Only hash the password if it has been modified
   if (!this.isModified("password")) return next();
+
   try {
     // Generate a salt and hash the password
     const salt = await bcrypt.genSalt(10);
@@ -107,35 +117,23 @@ UserSchema.pre("save", async function (next) {
 
 // Compare password method
 UserSchema.methods.comparePassword = async function (enteredPassword) {
-  return bcrypt.compare(enteredPassword, this.password);
+  return await bcrypt.compare(enteredPassword, this.password);
 };
 
 // Method to generate 2FA temporary token
 UserSchema.methods.generateTwoFactorToken = function() {
   // Generate a 6-digit OTP
   const token = Math.floor(100000 + Math.random() * 900000).toString();
-  
-  // Hash the token
-  this.twoFactorTemporaryToken = crypto
-    .createHash('sha256')
-    .update(token)
-    .digest('hex');
-  
-  // Set token expiration to 10 minutes
-  this.twoFactorTokenExpires = Date.now() + 10 * 60 * 1000;
-  
+  this.twoFactorTemporaryToken = token;
+  this.twoFactorTokenExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
   return token;
 };
 
 // Method to validate 2FA token
 UserSchema.methods.validateTwoFactorToken = function(token) {
-  const hashedToken = crypto
-    .createHash('sha256')
-    .update(token)
-    .digest('hex');
   
   return (
-    this.twoFactorTemporaryToken === hashedToken &&
+    this.twoFactorTemporaryToken === token &&
     this.twoFactorTokenExpires > Date.now()
   );
 };
@@ -151,30 +149,30 @@ UserSchema.methods.generatePasswordResetToken = function () {
   return resetToken;
 };
 
-// Securely add refresh token
 UserSchema.methods.addRefreshToken = function (token, expiresIn) {
   const encryptedToken = crypto
     .createHash("sha256")
     .update(token)
     .digest("hex");
+
   this.refreshTokens.push({
     token: encryptedToken,
     expiresAt: Date.now() + expiresIn,
   });
 };
 
-// Check if refresh token is valid
 UserSchema.methods.isValidRefreshToken = function (token) {
   const encryptedToken = crypto
     .createHash("sha256")
     .update(token)
     .digest("hex");
+
   return this.refreshTokens.some(
     (rt) => rt.token === encryptedToken && rt.expiresAt > Date.now()
   );
 };
 
-// Cleanup expired refresh tokens
+// Method to remove expired refresh tokens
 UserSchema.methods.removeExpiredTokens = function () {
   this.refreshTokens = this.refreshTokens.filter(
     (rt) => rt.expiresAt > Date.now()
@@ -182,23 +180,26 @@ UserSchema.methods.removeExpiredTokens = function () {
 };
 
 // Method to increment login attempts
-UserSchema.methods.incrementLoginAttempts = function() {
+UserSchema.methods.incrementLoginAttempts = function () {
   // If we have previous lock that has expired, restart at 1
   if (this.lockUntil && this.lockUntil < Date.now()) {
     this.loginAttempts = 1;
     this.lockUntil = undefined;
   }
+
   // Increment login attempts
   this.loginAttempts += 1;
+
   // Lock the account if max attempts reached
   if (this.loginAttempts >= 5) {
     this.lockUntil = Date.now() + 60 * 60 * 1000; // Lock for 1 hour
   }
+
   return this.save();
 };
 
 // Method to reset login attempts
-UserSchema.methods.resetLoginAttempts = function() {
+UserSchema.methods.resetLoginAttempts = function () {
   this.loginAttempts = 0;
   this.lockUntil = undefined;
   return this.save();
