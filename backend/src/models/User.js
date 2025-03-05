@@ -9,10 +9,12 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      minlength: [2, "Full name must be at least 2 characters long"],
+      maxlength: [50, "Full name cannot exceed 50 characters"],
     },
     email: {
       type: String,
-      required: true,
+      required: [true, "Email is required"],
       unique: true,
       lowercase: true,
       trim: true,
@@ -21,8 +23,8 @@ const UserSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
-      minlength: 8,
+      required: [true, "Password is required"],
+      minlength: [8, "Password must be at least 8 characters long"],
       select: false,
     },
     role: {
@@ -35,18 +37,35 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // Two-Factor Authentication Fields
+    twoFactorMethod: {
+      type: String,
+      enum: ["email", "disabled"],
+      default: "disabled",
+    },
+    twoFactorSecret: {
+      type: String,
+      select: false,
+    },
+    twoFactorTemporaryToken: {
+      type: String,
+      select: false,
+    },
+    twoFactorTokenExpires: {
+      type: Date,
+      select: false,
+    },
+
     refreshTokens: [
       {
-        token: { type: String },
+        token: { type: String, required: true },
         createdAt: { type: Date, default: Date.now },
         expiresAt: { type: Date, required: true },
       },
     ],
     resetPasswordToken: { type: String, select: false },
     resetPasswordExpires: { type: Date, select: false },
-
-    twoFactorEnabled: { type: Boolean, default: false },
-    twoFactorSecret: { type: String, select: false },
 
     createdAt: {
       type: Date,
@@ -76,14 +95,49 @@ UserSchema.set("toJSON", {
 // Hash password before saving
 UserSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
+  try {
+    // Generate a salt and hash the password
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    return next(error);
+  }
 });
 
 // Compare password method
 UserSchema.methods.comparePassword = async function (enteredPassword) {
   return bcrypt.compare(enteredPassword, this.password);
+};
+
+// Method to generate 2FA temporary token
+UserSchema.methods.generateTwoFactorToken = function() {
+  // Generate a 6-digit OTP
+  const token = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  // Hash the token
+  this.twoFactorTemporaryToken = crypto
+    .createHash('sha256')
+    .update(token)
+    .digest('hex');
+  
+  // Set token expiration to 10 minutes
+  this.twoFactorTokenExpires = Date.now() + 10 * 60 * 1000;
+  
+  return token;
+};
+
+// Method to validate 2FA token
+UserSchema.methods.validateTwoFactorToken = function(token) {
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(token)
+    .digest('hex');
+  
+  return (
+    this.twoFactorTemporaryToken === hashedToken &&
+    this.twoFactorTokenExpires > Date.now()
+  );
 };
 
 // Generate password reset token
@@ -125,6 +179,29 @@ UserSchema.methods.removeExpiredTokens = function () {
   this.refreshTokens = this.refreshTokens.filter(
     (rt) => rt.expiresAt > Date.now()
   );
+};
+
+// Method to increment login attempts
+UserSchema.methods.incrementLoginAttempts = function() {
+  // If we have previous lock that has expired, restart at 1
+  if (this.lockUntil && this.lockUntil < Date.now()) {
+    this.loginAttempts = 1;
+    this.lockUntil = undefined;
+  }
+  // Increment login attempts
+  this.loginAttempts += 1;
+  // Lock the account if max attempts reached
+  if (this.loginAttempts >= 5) {
+    this.lockUntil = Date.now() + 60 * 60 * 1000; // Lock for 1 hour
+  }
+  return this.save();
+};
+
+// Method to reset login attempts
+UserSchema.methods.resetLoginAttempts = function() {
+  this.loginAttempts = 0;
+  this.lockUntil = undefined;
+  return this.save();
 };
 
 const User = mongoose.model("User", UserSchema);
