@@ -1,51 +1,117 @@
 const authService = require("../services/authService");
 const { authLogger } = require("../loggers/authLogger");
+const twoFactorService = require("../services/twoFactorService");
+const { handleControllerError } = require("../utils/errorHandler");
+const {sendResponse} = require("../utils/sendResponse")
 
 const signup = async (req, res) => {
     try {
       const user = await authService.signup(req.body);
       authLogger.info(`User signed up: ${user.email}`);
-      res.status(201).json({ message: "User registered successfully", user });
+      sendResponse(res, 201, "User registered successfully", { user });
     } catch (error) {
-      authLogger.error(`Signup error: ${error.message}`);
-      res.status(400).json({ error: error.message });
+      handleControllerError(error, req, res, authLogger);
     }
 }
 
 const signin = async (req, res) => {
-    try {
-       const { user, accessToken, refreshToken } = await authService.signin(
-         req.body
-       );
-       authLogger.info(`User logged in: ${user.email}`);
-       res.json({ user, accessToken, refreshToken });
-     } catch (error) {
-       authLogger.error(`Signin error: ${error.message}`);
-       res.status(401).json({ error: error.message });
+  try {
+    const { email, password } = req.body;
+    const result = await authService.signin({ email, password });
+
+    if (result.requiresTwoFactor) {
+      authLogger.info(`2FA required for user: ${email}`, {
+        action: "2fa_required",
+      });
+      return sendResponse(res, 209, "Two-factor authentication required", {
+        email,
+        authType: "2fa",
+      });
     }
-}
+
+    authLogger.info(`User logged in: ${result.user.email}`, {
+      userId: result.user.id,
+    });
+
+    // Ensure tokens are properly sent in the response
+    sendResponse(res, 200, "Login successful", {
+      user: result.user,
+      tokens: {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      },
+    });
+  } catch (error) {
+    handleControllerError(error, req, res, authLogger);
+  }
+};
+
+// New controller for 2FA verification
+const verifyTwoFactor = async (req, res) => {
+  try {
+    const { email, token } = req.body;
+    const result = await authService.verifyTwoFactorLogin(email, token);
+
+    authLogger.info(`2FA verified for user: ${email}`);
+    sendResponse(res, 200, "2FA verification successful", {
+      user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    });
+  } catch (error) {
+    handleControllerError(error, req, res, authLogger);
+  }
+};
+
+const enableTwoFactor = async (req, res) => {
+  try {
+    const result = await twoFactorService.enableTwoFactor(req.user.id);
+    sendResponse(res, 200, result.message, { method: result.method });
+  } catch (error) {
+    handleControllerError(error, req, res, authLogger);
+  }
+};
+
+const verifyTwoFactorSetup = async (req, res) => {
+  try {
+    const { token } = req.body;
+    const result = await twoFactorService.verifyTwoFactorSetup(
+      req.user.id,
+      token
+    );
+    sendResponse(res, 200, result.message);
+  } catch (error) {
+    handleControllerError(error, req, res, authLogger);
+  }
+};
+
+const disableTwoFactor = async (req, res) => {
+  try {
+    const result = await twoFactorService.disableTwoFactor(req.user.id);
+    sendResponse(res, 200, result.message);
+  } catch (error) {
+    handleControllerError(error, req, res, authLogger);
+  }
+};
 
 const refreshToken = async (req,res) => {
   try {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      return res.status(400).json({ message: "Refresh token is required" });
+      sendResponse(res, 400, "Refresh token is required");
     }
 
     // Call the service to generate new tokens
     const tokens = await authService.refreshToken(refreshToken);
 
     if (!tokens) {
-      return res
-        .status(401)
-        .json({ message: "Invalid or expired refresh token" });
+      sendResponse(res, 401, "Invalid or expired refresh token");
     }
 
-    res.json(tokens);
+    sendResponse(res, 200, "Token refreshed successfully", tokens);
   } catch (error) {
-    console.error("Refresh token error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    handleControllerError(error, req, res, authLogger);
   }
 }
 
@@ -54,14 +120,14 @@ const logout = async (req, res) => {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      return res.status(400).json({ error: "Refresh token is required" });
+      sendResponse(res, 400, "Refresh token is required");
     }
 
     await authService.logout(req.user.id, refreshToken);
 
-    res.json({ message: "Logged out successfully" });
+    sendResponse(res, 200, "Logged out successfully");
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    handleControllerError(error, req, res, authLogger);
   }
 };
 
@@ -70,12 +136,9 @@ const requestPasswordReset = async (req, res) => {
     const { email } = req.body;
     await authService.requestPasswordReset(email);
     authLogger.info(`Password reset link sent to ${email}`);
-    res.json({
-      message: "Password reset link sent to registered email.",
-    });
+    sendResponse(res, 200, "Password reset link sent to registered email.");
   } catch (error) {
-    authLogger.error("Error requesting password reset: ", error);
-    res.status(500).json({ error: "Internal server error" });
+    handleControllerError(error, req, res, authLogger);
   }
 };
 
@@ -84,10 +147,9 @@ const resetPassword = async (req, res) => {
     const { token, newPassword } = req.body;
     await authService.resetPassword(token, newPassword);
     authLogger.info("Password successfully reset");
-    res.json({ message: "Password successfully reset. You can now log in." });
+    sendResponse(res, 200, "Password successfully reset. You can now log in.");
   } catch (error) {
-    authLogger.error("Error resetting password: ", error);
-    res.status(400).json({ error: error.message });
+    handleControllerError(error, req, res, authLogger);
   }
 };
 
@@ -97,5 +159,9 @@ module.exports = {
     refreshToken,
     logout,
     requestPasswordReset,
-    resetPassword
+    resetPassword,
+    verifyTwoFactor,
+    enableTwoFactor,
+    verifyTwoFactorSetup,
+    disableTwoFactor
 }

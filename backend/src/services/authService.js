@@ -3,52 +3,89 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const User = require("../models/User");
+const {generateAccessToken, generateRefreshToken} = require("../utils/generateTokens");
+const { UnauthorizedError, ConflictError, BadRequestError } = require("../utils/customErrors");
 const { sendEmail } = require("../utils/sendEmail");
 
 const signup = async (userData) => {
+  if (!userData.role || !["admin", "pharmacist"].includes(userData.role)) {
+    userData.role = "admin"; // Default role
+  }
+
   const userExists = await User.findOne({ email: userData.email });
-  if (userExists) throw new Error("User already Exists");
+  if (userExists) throw new ConflictError("User already exists");
   const user = await User.create(userData);
   return user;
 };
 
 const signin = async ({ email, password }) => {
-  const user = await User.findOne({ email }).select("+password");
-  if (!user) throw new Error("Invalid credentials");
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) throw new Error("Invalid credentials");
+  const user = await User.findOne({ email }).select(
+    "+password +twoFactorMethod"
+  );
+  if (!user || !(await bcrypt.compare(password, user.password)))
+    throw new UnauthorizedError("Invalid credentials");
 
-  const accessToken = jwt.sign({ id: user._id }, jwtConfig.secret, {
-    expiresIn: jwtConfig.expiresIn,
-  });
-  const refreshToken = jwt.sign({ id: user._id }, jwtConfig.refreshSecret, {
-    expiresIn: jwtConfig.refreshExpiresIn,
-  });
+  if (user.twoFactorMethod !== "disabled") {
+    // Generate and send 2FA token
+    const otpToken = user.generateTwoFactorToken();
+    await user.save();
+
+    // Send OTP via email
+    await sendEmail(
+      user.email,
+      "Login Verification Code",
+      `Your login verification code is: ${otpToken}. 
+       This code will expire in 10 minutes.`
+    );
+
+    // Return user ID for 2FA verification
+    return {
+      requiresTwoFactor: true,
+      userId: user._id,
+    };
+  }
+
+  const accessToken = generateAccessToken(user._id);
+  const refreshToken = generateRefreshToken(user._id);
 
   return { user, accessToken, refreshToken };
 };
 
+
+const verifyTwoFactorLogin = async (email, token) => {
+  // Find user by email
+  const user = await User.findOne({ email }).select(
+    "+twoFactorTemporaryToken +twoFactorTokenExpires"
+  );
+
+  if (!user) {
+    throw new BadRequestError("User not found");
+  }
+
+  // Validate token
+  if (!user.validateTwoFactorToken(token)) {
+    throw new UnauthorizedError("Invalid or expired verification code");
+  }
+
+  // Clear temporary token after successful verification
+  user.twoFactorTemporaryToken = user.twoFactorTokenExpires = undefined;
+  await user.save();
+
+  return {
+    user,
+    generateAccessToken,
+    generateRefreshToken,
+  };
+};
+
 const refreshToken = async (token) => {
   const decoded = jwt.verify(token, jwtConfig.refreshSecret);
-  const accessToken = jwt.sign(
-    {
-      id: decoded.id,
-    },
-    jwtConfig.secret,
-    {
-      expiresIn: jwtConfig.expiresIn,
-    }
-  );
-  const refreshToken = jwt.sign(
-    {
-      id: decoded.id,
-    },
-    jwtConfig.refreshSecret,
-    {
-      expiresIn: jwtConfig.refreshExpiresIn,
-    }
-  );
-  return { accessToken, refreshToken };
+  const user = await User.findById(decoded.id).select("+refreshTokens");
+  
+  const newAccessToken = generateAccessToken(user._id);
+  const newRefreshToken = generateRefreshToken(user._id);
+
+  return { newAccessToken, newRefreshToken };
 };
 
 const logout = async (userId, refreshToken) => {
@@ -61,7 +98,7 @@ const logout = async (userId, refreshToken) => {
 const requestPasswordReset = async (email) => {
   const user = await User.findOne({ email });
 
-  if (!user) throw new Error("User not found");
+  if (!user) throw new BadRequestError("User not found");
 
   // Generate a random reset token
   const resetToken = crypto.randomBytes(32).toString("hex");
@@ -119,5 +156,6 @@ module.exports = {
   refreshToken,
   logout,
   requestPasswordReset,
-  resetPassword
+  resetPassword,
+  verifyTwoFactorLogin
 };
