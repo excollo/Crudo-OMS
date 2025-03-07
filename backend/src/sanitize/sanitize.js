@@ -1,50 +1,111 @@
 const sanitizeHtml = require("sanitize-html");
-const { body, validationResult } = require("express-validator");
+const { body, param, validationResult } = require("express-validator");
 
+// Generic sanitization middleware for any fields
 const sanitizeMiddleware = (fields) => [
-  // Apply sanitization to all fields
   ...fields.map((field) => body(field).trim().escape()),
 
-  // Validate and sanitize request body
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty())
       return res.status(400).json({ errors: errors.array() });
 
-    // Sanitize all string fields in the request body
-    for (const key in req.body) {
-      if (typeof req.body[key] === "string") {
-        req.body[key] = sanitizeHtml(req.body[key], {
-          allowedTags: [],
-          allowedAttributes: {},
-        });
+    // Deeply sanitize all string fields in the request body (handles nested objects)
+    const sanitizeObject = (obj) => {
+      for (const key in obj) {
+        if (typeof obj[key] === "string") {
+          obj[key] = sanitizeHtml(obj[key], {
+            allowedTags: [],
+            allowedAttributes: {},
+          });
+        } else if (typeof obj[key] === "object" && obj[key] !== null) {
+          sanitizeObject(obj[key]); // Recursive sanitization
+        }
       }
-    }
+    };
+
+    sanitizeObject(req.body);
     next();
   },
 ];
 
+// Authentication-related sanitization rules
 const emailSanitization = [
-  body("email").normalizeEmail().isEmail().withMessage("Invalid email address"),
+  body("email")
+    .normalizeEmail()
+    .toLowerCase()
+    .isEmail()
+    .withMessage("Invalid email format")
+    .trim()
+    .escape(),
 ];
 
 const passwordSanitization = [
   body("password")
     .isLength({ min: 8 })
-    .withMessage("Password must be at least 8 characters")
-    .custom((value) => {
-      if (!/[A-Z]/.test(value))
-        throw new Error("Password must contain at least one uppercase letter");
-      if (!/[a-z]/.test(value))
-        throw new Error("Password must contain at least one lowercase letter");
-      if (!/\d/.test(value))
-        throw new Error("Password must contain at least one number");
-      return true;
-    }),
+    .withMessage("Password must be at least 8 characters long")
+    .matches(/[A-Z]/)
+    .withMessage("Password must contain at least one uppercase letter (A-Z)")
+    .matches(/[a-z]/)
+    .withMessage("Password must contain at least one lowercase letter (a-z)")
+    .matches(/\d/)
+    .withMessage("Password must contain at least one number (0-9)")
+    .trim(),
 ];
+
+// Inventory management sanitization rules
+const productIdSanitization = [
+  param("id")
+    .trim()
+    .escape()
+    .matches(/^[a-fA-F0-9]{24}$/)
+    .withMessage("Invalid product ID format"),
+];
+
+const searchQuerySanitization = [body("search").optional().trim().escape()];
+
+const paginationSanitization = [
+  body("pageNo")
+    .optional()
+    .trim()
+    .escape()
+    .isInt({ min: 1 })
+    .toInt()
+    .withMessage("Page number must be a positive integer"),
+  body("pageSize")
+    .optional()
+    .trim()
+    .escape()
+    .isInt({ min: 1, max: 100 })
+    .toInt()
+    .withMessage("Page size must be between 1 and 100"),
+];
+
+// Middleware to handle validation errors
+const handleValidationErrors = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation failed",
+      errors: errors.array(),
+    });
+  }
+  next();
+};
+
+// Combine multiple sanitization rules
+const combineSanitization = (...rules) => {
+  return [...rules.flat(), handleValidationErrors];
+};
 
 module.exports = {
   sanitizeMiddleware,
   emailSanitization,
   passwordSanitization,
+  productIdSanitization,
+  searchQuerySanitization,
+  paginationSanitization,
+  handleValidationErrors,
+  combineSanitization,
 };

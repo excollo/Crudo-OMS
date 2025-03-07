@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const mongooseDelete = require("mongoose-delete");
 
+// Define User schema
 const UserSchema = new mongoose.Schema(
   {
     fullName: {
@@ -25,13 +26,12 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
       minlength: [8, "Password must be at least 8 characters long"],
-      select: false,
+      select: false, // Exclude password from queries by default
     },
     role: {
       type: String,
       enum: ["admin", "pharmacist"],
       default: "admin",
-      required: false
     },
     isActive: {
       type: Boolean,
@@ -72,7 +72,7 @@ const UserSchema = new mongoose.Schema(
     createdAt: {
       type: Date,
       default: Date.now,
-      immutable: true, // Ensures createdAt is never changed
+      immutable: true, // Prevent modification
     },
   },
   {
@@ -80,10 +80,10 @@ const UserSchema = new mongoose.Schema(
   }
 );
 
-// Apply soft delete plugin
+// Enable soft delete functionality
 UserSchema.plugin(mongooseDelete, { overrideMethods: "all", deletedAt: true });
 
-// Hide sensitive fields in JSON responses
+// Hide sensitive fields when returning user data
 UserSchema.set("toJSON", {
   transform: function (doc, ret) {
     delete ret.password;
@@ -94,19 +94,15 @@ UserSchema.set("toJSON", {
   },
 });
 
-// Virtual for account locked status
-UserSchema.virtual('isLocked').get(function() {
+// Virtual property to check if account is locked
+UserSchema.virtual("isLocked").get(function () {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 });
 
-
 // Hash password before saving
 UserSchema.pre("save", async function (next) {
-  // Only hash the password if it has been modified
   if (!this.isModified("password")) return next();
-
   try {
-    // Generate a salt and hash the password
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
     next();
@@ -115,23 +111,21 @@ UserSchema.pre("save", async function (next) {
   }
 });
 
-// Compare password method
+// Compare hashed password
 UserSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Method to generate 2FA temporary token
-UserSchema.methods.generateTwoFactorToken = function() {
-  // Generate a 6-digit OTP
-  const token = Math.floor(100000 + Math.random() * 900000).toString();
+// Generate temporary 2FA token
+UserSchema.methods.generateTwoFactorToken = function () {
+  const token = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
   this.twoFactorTemporaryToken = token;
-  this.twoFactorTokenExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+  this.twoFactorTokenExpires = Date.now() + 10 * 60 * 1000; // Expires in 10 min
   return token;
 };
 
-// Method to validate 2FA token
-UserSchema.methods.validateTwoFactorToken = function(token) {
-  
+// Validate 2FA token
+UserSchema.methods.validateTwoFactorToken = function (token) {
   return (
     this.twoFactorTemporaryToken === token &&
     this.twoFactorTokenExpires > Date.now()
@@ -145,60 +139,56 @@ UserSchema.methods.generatePasswordResetToken = function () {
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
-  this.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
+  this.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // Expires in 10 min
   return resetToken;
 };
 
+// Add refresh token with expiration
 UserSchema.methods.addRefreshToken = function (token, expiresIn) {
   const encryptedToken = crypto
     .createHash("sha256")
     .update(token)
     .digest("hex");
-
   this.refreshTokens.push({
     token: encryptedToken,
     expiresAt: Date.now() + expiresIn,
   });
 };
 
+// Validate refresh token
 UserSchema.methods.isValidRefreshToken = function (token) {
   const encryptedToken = crypto
     .createHash("sha256")
     .update(token)
     .digest("hex");
-
   return this.refreshTokens.some(
     (rt) => rt.token === encryptedToken && rt.expiresAt > Date.now()
   );
 };
 
-// Method to remove expired refresh tokens
+// Remove expired refresh tokens
 UserSchema.methods.removeExpiredTokens = function () {
   this.refreshTokens = this.refreshTokens.filter(
     (rt) => rt.expiresAt > Date.now()
   );
 };
 
-// Method to increment login attempts
+// Increment failed login attempts and lock if exceeded
 UserSchema.methods.incrementLoginAttempts = function () {
-  // If we have previous lock that has expired, restart at 1
   if (this.lockUntil && this.lockUntil < Date.now()) {
     this.loginAttempts = 1;
     this.lockUntil = undefined;
+  } else {
+    this.loginAttempts += 1;
   }
 
-  // Increment login attempts
-  this.loginAttempts += 1;
-
-  // Lock the account if max attempts reached
   if (this.loginAttempts >= 5) {
     this.lockUntil = Date.now() + 60 * 60 * 1000; // Lock for 1 hour
   }
-
   return this.save();
 };
 
-// Method to reset login attempts
+// Reset failed login attempts
 UserSchema.methods.resetLoginAttempts = function () {
   this.loginAttempts = 0;
   this.lockUntil = undefined;

@@ -1,58 +1,54 @@
 const express = require("express");
-const { logAuthActivity } = require("../loggers/authLogger");
 const authController = require("../controllers/authController");
 const authMiddleware = require("../middleware/authMiddleware");
 const { sanitizeMiddleware } = require("../sanitize/sanitize");
+const { logActivity } = require("../loggers/appLogger");
 
 const router = express.Router();
 
 // Authentication Routes
 router.post(
   "/signup",
-  [
-    sanitizeMiddleware(["fullName", "email", "password", "role"]),
-    logAuthActivity,
-  ],
+  [sanitizeMiddleware(["fullName", "email", "password", "role"]), logActivity],
   authController.signup
 );
 router.post(
   "/signin",
-  [sanitizeMiddleware(["email", "password"]), logAuthActivity],
+  [sanitizeMiddleware(["email", "password"]), logActivity],
   authController.signin
 );
-router.post("/logout", authMiddleware.verifyToken, authController.logout);
+router.post("/logout", authMiddleware.authenticate, authController.logout);
 
 // Two-Factor Authentication Routes
 router.post(
   "/enable-2fa",
-  authMiddleware.verifyToken,
+  authMiddleware.authenticate,
   authController.enableTwoFactor
 );
 router.post(
   "/verify-2fa-setup",
-  [sanitizeMiddleware(["email", "token"]), authMiddleware.verifyToken],
+  [sanitizeMiddleware(["email", "token"]), authMiddleware.authenticate],
   authController.verifyTwoFactorSetup
+);
+router.post('/verify-2fa', 
+  sanitizeMiddleware(['email', 'token']), 
+  authController.verifyTwoFactor
 );
 router.post(
   "/disable-2fa",
-  authMiddleware.verifyToken,
+  authMiddleware.authenticate,
   authController.disableTwoFactor
-);
-router.post(
-  "/verify-2fa-setup",
-  authMiddleware.verifyToken,
-  authController.verifyTwoFactorSetup
 );
 
 // Password Reset Routes
 router.post(
   "/request-password-reset",
-  [sanitizeMiddleware(["email"]), logAuthActivity],
+  [sanitizeMiddleware(["email"]), logActivity],
   authController.requestPasswordReset
 );
 router.post(
   "/reset-password",
-  [sanitizeMiddleware(["token", "newPassword"]), logAuthActivity],
+  [sanitizeMiddleware(["token", "newPassword"]), logActivity],
   authController.resetPassword
 );
 

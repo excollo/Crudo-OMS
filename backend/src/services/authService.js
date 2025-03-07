@@ -6,19 +6,7 @@ const {generateAccessToken, generateRefreshToken} = require("../utils/generateTo
 const { UnauthorizedError, ConflictError, BadRequestError } = require("../utils/customErrors");
 const { sendEmail } = require("../utils/sendEmail");
 const { jwtConfig } = require("../config/config");
-const sanitizeRequest = require("../sanitize/sanitize");
-
-// Helper function to generate JWT tokens
-const generateTokens = (userId) => {
-  const accessToken = jwt.sign({ id: userId }, jwtConfig.secret, {
-    expiresIn: jwtConfig.expiresIn,
-  });
-  const refreshToken = jwt.sign({ id: userId }, jwtConfig.refreshSecret, {
-    expiresIn: jwtConfig.refreshExpiresIn,
-  });
-
-  return { accessToken, refreshToken };
-};
+const {emailSanitization} = require("../sanitize/sanitize");
 
 // Sign-up service
 const signup = async (userData) => {
@@ -98,9 +86,20 @@ const refreshToken = async (token) => {
 
   const decoded = jwt.verify(token, jwtConfig.refreshSecret);
   const user = await User.findById(decoded.id).select("+refreshTokens");
-  
+
+  if (!user || !user.refreshTokens.some((t) => t.token === token)) {
+    throw new UnauthorizedError("Invalid refresh token");
+  }
+
+  // Generate new tokens
   const newAccessToken = generateAccessToken(user._id);
   const newRefreshToken = generateRefreshToken(user._id);
+
+  // Replace the old refresh token with a new one
+  user.refreshTokens = user.refreshTokens.filter((t) => t.token !== token);
+  user.refreshTokens.push({ token: newRefreshToken });
+
+  await user.save();
 
   return { newAccessToken, newRefreshToken };
 };
@@ -114,19 +113,32 @@ const logout = async (userId, refreshToken) => {
 
 // Password reset request
 const requestPasswordReset = async (email) => {
-  sanitizeRequest({ body: { email } });
-
   const user = await User.findOne({ email });
   if (!user) throw new BadRequestError("User not found");
 
-  if (!user) throw new BadRequestError("User not found");
+  if (user.resetPasswordExpires && user.resetPasswordExpires > Date.now()) {
+    throw new BadRequestError("Reset already requested. Try again later.");
+  }
 
-  // Generate a random reset token
+  // Generate a secure reset token
   const resetToken = crypto.randomBytes(32).toString("hex");
-  user.resetPasswordToken = crypto
-    .createHash("sha256")
-    .update(resetToken)
-    .digest("hex");
+
+  // Use a proper encryption method
+  const secretKey = process.env.SECRET_KEY;
+  if (!secretKey) {
+    throw new Error("SECRET_KEY is not defined in environment variables");
+  }
+
+  // Ensure the key is exactly 32 bytes (AES-256 requires a 256-bit key)
+  const key = crypto.createHash("sha256").update(secretKey).digest(); // Derive a 32-byte key
+  const iv = crypto.randomBytes(16); // Initialization vector (IV) for AES
+
+  const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
+  let encrypted = cipher.update(resetToken, "utf8", "hex");
+  encrypted += cipher.final("hex");
+
+  // Store both the IV and encrypted token (IV is needed for decryption)
+  user.resetPasswordToken = `${iv.toString("hex")}:${encrypted}`;
   user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 min expiry
 
   await user.save();
@@ -142,9 +154,9 @@ const requestPasswordReset = async (email) => {
   return { message: "Password reset email sent" };
 };
 
+
 // Reset password service
 const resetPassword = async (token, newPassword) => {
-  sanitizeRequest({ body: { newPassword } });
 
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 

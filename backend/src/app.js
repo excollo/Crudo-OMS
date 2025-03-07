@@ -4,6 +4,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const authRoutes = require("./routes/authRoutes");
+const inventoryRoutes = require("./routes/inventoryRoutes");
 const { port, mongoURI } = require("./config/config");
 
 const app = express();
@@ -22,6 +23,7 @@ app.use(limiter);
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/inventory", inventoryRoutes);
 
 // Database Connection
 mongoose
