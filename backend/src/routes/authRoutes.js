@@ -46,6 +46,7 @@ router.post(
   [sanitizeMiddleware(["email"]), logActivity],
   authController.requestPasswordReset
 );
+
 router.post(
   "/reset-password",
   [sanitizeMiddleware(["token", "newPassword"]), logActivity],

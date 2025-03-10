@@ -6,7 +6,6 @@ const {generateAccessToken, generateRefreshToken} = require("../utils/generateTo
 const { UnauthorizedError, ConflictError, BadRequestError } = require("../utils/customErrors");
 const { sendEmail } = require("../utils/sendEmail");
 const { jwtConfig } = require("../config/config");
-const {emailSanitization} = require("../sanitize/sanitize");
 
 // Sign-up service
 const signup = async (userData) => {
@@ -44,7 +43,7 @@ const signin = async ({ email, password }) => {
     // Return user ID for 2FA verification
     return {
       requiresTwoFactor: true,
-      userId: user._id,
+      email: user.email,
     };
   }
 
@@ -71,37 +70,54 @@ const verifyTwoFactorLogin = async (email, token) => {
   }
 
   // Clear temporary token after successful verification
-  user.twoFactorTemporaryToken = user.twoFactorTokenExpires = undefined;
+  user.twoFactorTemporaryToken = undefined;
+  user.twoFactorTokenExpires = undefined;
   await user.save();
+
+  // Generate new tokens
+  const accessToken = generateAccessToken(user._id);
+  const refreshToken = generateRefreshToken(user._id);
 
   return {
     user,
-    generateAccessToken,
-    generateRefreshToken,
+    accessToken,
+    refreshToken,
   };
 };
 
-const refreshToken = async (token) => {
-  if (!token) throw new UnauthorizedError("Refresh token is required");
+const refreshToken = async (refreshToken) => {
+  try {
+    // Verify the refresh token
+    const payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
-  const decoded = jwt.verify(token, jwtConfig.refreshSecret);
-  const user = await User.findById(decoded.id).select("+refreshTokens");
+    if (!payload) {
+      throw new UnauthorizedError("Invalid refresh token");
+    }
 
-  if (!user || !user.refreshTokens.some((t) => t.token === token)) {
-    throw new UnauthorizedError("Invalid refresh token");
+    // Get user from database using payload.id
+    const user = await User.findById(payload.id);
+
+    if (!user) {
+      throw new UnauthorizedError("User not found");
+    }
+
+    // Generate new tokens
+    const newAccessToken = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken(user._id);
+
+    // Store new refresh token in database if you're tracking them
+    // await storeRefreshToken(user._id, newRefreshToken);
+
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    };
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      throw new UnauthorizedError("Invalid refresh token");
+    }
+    throw error;
   }
-
-  // Generate new tokens
-  const newAccessToken = generateAccessToken(user._id);
-  const newRefreshToken = generateRefreshToken(user._id);
-
-  // Replace the old refresh token with a new one
-  user.refreshTokens = user.refreshTokens.filter((t) => t.token !== token);
-  user.refreshTokens.push({ token: newRefreshToken });
-
-  await user.save();
-
-  return { newAccessToken, newRefreshToken };
 };
 
 const logout = async (userId, refreshToken) => {
@@ -122,24 +138,24 @@ const requestPasswordReset = async (email) => {
 
   // Generate a secure reset token
   const resetToken = crypto.randomBytes(32).toString("hex");
+  console.log("Generated reset token:", resetToken.substring(0, 10) + "...");
 
-  // Use a proper encryption method
   const secretKey = process.env.SECRET_KEY;
   if (!secretKey) {
     throw new Error("SECRET_KEY is not defined in environment variables");
   }
 
-  // Ensure the key is exactly 32 bytes (AES-256 requires a 256-bit key)
-  const key = crypto.createHash("sha256").update(secretKey).digest(); // Derive a 32-byte key
-  const iv = crypto.randomBytes(16); // Initialization vector (IV) for AES
+  // Encrypt token
+  const key = crypto.createHash("sha256").update(secretKey).digest();
+  const iv = crypto.randomBytes(16);
 
   const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
   let encrypted = cipher.update(resetToken, "utf8", "hex");
   encrypted += cipher.final("hex");
 
-  // Store both the IV and encrypted token (IV is needed for decryption)
+  // Store encrypted token
   user.resetPasswordToken = `${iv.toString("hex")}:${encrypted}`;
-  user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 min expiry
+  user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
   await user.save();
 
@@ -148,31 +164,69 @@ const requestPasswordReset = async (email) => {
   await sendEmail(
     user.email,
     "Password Reset Request",
-    `Click here: ${resetURL}`
+    `Click here to reset your password: ${resetURL}\nValid for 10 minutes.`
   );
 
   return { message: "Password reset email sent" };
 };
 
-
 // Reset password service
 const resetPassword = async (token, newPassword) => {
 
-  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-
-  const user = await User.findOne({
-    resetPasswordToken: hashedToken,
+  // Find user with valid reset token and not expired
+  const users = await User.find({
+    resetPasswordToken: { $exists: true, $ne: null },
     resetPasswordExpires: { $gt: Date.now() },
-  });
+  }).select("+resetPasswordToken +resetPasswordExpires");
 
-  if (!user) throw new BadRequestError("Invalid or expired token");
+  let validUser = null;
 
-  // Hash and update password
-  user.password = await bcrypt.hash(newPassword, 10);
-  user.resetPasswordToken = undefined;
-  user.resetPasswordExpires = undefined;
+  for (const user of users) {
+    try {
+      if (!user.resetPasswordToken) {
+        console.log("Skipping user with null reset token");
+        continue;
+      }
 
-  await user.save();
+      // Decrypt and verify token for each user
+      const [ivHex, encryptedToken] = user.resetPasswordToken.split(":");
+
+      if (!ivHex || !encryptedToken) {
+        console.log("Invalid token format for user");
+        continue;
+      }
+
+      const iv = Buffer.from(ivHex, "hex");
+      const key = crypto
+        .createHash("sha256")
+        .update(process.env.SECRET_KEY)
+        .digest();
+
+      const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+      let decrypted = decipher.update(encryptedToken, "hex", "utf8");
+      decrypted += decipher.final("utf8");
+
+      if (decrypted === token) {
+        validUser = user;
+        break;
+      }
+    } catch (err) {
+      console.error("Error processing user token:", err.message);
+      console.error("Full error:", err);
+      continue;
+    }
+  }
+
+  if (!validUser) {
+    throw new BadRequestError("Invalid or expired token");
+  }
+
+  // Update password for valid user
+  validUser.password = await bcrypt.hash(newPassword, 10);
+  validUser.resetPasswordToken = undefined;
+  validUser.resetPasswordExpires = undefined;
+
+  await validUser.save();
   return { message: "Password successfully reset" };
 };
 

@@ -39,14 +39,14 @@ const fetchProductList = async (pageNo = 1, pageSize = -1, search = "") => {
  * @param {string} id - The unique product ID.
  * @returns {Promise<Object>} - The product details response from SwilERP.
  */
-const fetchProductById = async (id) => {
+const fetchProductById = async (id, barcode = 0) => {
   try {
     const response = await axios.post(
       `${process.env.SWILERP_BASE_URL}/api/master/Product/GetMobileByID`,
       {},
       {
         headers,
-        params: { id },
+        params: { id, Barcode: barcode },
       }
     );
     return response.data;

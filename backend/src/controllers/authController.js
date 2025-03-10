@@ -101,9 +101,6 @@ const refreshToken = async (req, res) => {
       return sendResponse(res, 400, "Refresh token is required");
 
     const tokens = await authService.refreshToken(refreshToken);
-    if (!tokens)
-      return sendResponse(res, 401, "Invalid or expired refresh token");
-
     sendResponse(res, 200, "Token refreshed successfully", tokens);
   } catch (error) {
     handleControllerError(error, req, res, appLogger);
@@ -142,14 +139,16 @@ const requestPasswordReset = async (req, res) => {
 const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
+
     if (!token || !newPassword) {
       return sendResponse(res, 400, "Token and new password are required");
     }
 
-    await authService.resetPassword(token, newPassword);
+    const result = await authService.resetPassword(token, newPassword);
     appLogger.info("Password successfully reset");
     sendResponse(res, 200, "Password successfully reset. You can now log in.");
   } catch (error) {
+    appLogger.error(`Password reset error: ${error.message}`);
     handleControllerError(error, req, res, appLogger);
   }
 };

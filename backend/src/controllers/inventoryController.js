@@ -20,9 +20,10 @@ const getProductList = async (req, res) => {
 
 // Fetches product details by ID
 const getProductById = async (req, res) => {
-  const { id } = req.query;
+  const { id } = req.params;
+  const { barcode = 0 } = req.query;
   try {
-    const product = await inventoryService.fetchProductById(id);
+    const product = await inventoryService.fetchProductById(id, barcode);
     sendResponse(res, 200, "Product fetched successfully", product);
   } catch (error) {
     handleControllerError(error, req, res, appLogger);

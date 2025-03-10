@@ -66,9 +66,16 @@ const UserSchema = new mongoose.Schema(
         expiresAt: { type: Date, required: true },
       },
     ],
-    resetPasswordToken: { type: String, select: false },
-    resetPasswordExpires: { type: Date, select: false },
-
+    resetPasswordToken: {
+      type: String,
+      select: false, // This means we need to explicitly select it
+      sparse: true, // This allows the field to be undefined
+    },
+    resetPasswordExpires: {
+      type: Date,
+      select: false, // This means we need to explicitly select it
+      sparse: true, // This allows the field to be undefined
+    },
     createdAt: {
       type: Date,
       default: Date.now,
