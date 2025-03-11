@@ -21,6 +21,7 @@ import {
   CameraAltOutlined,
 } from "@mui/icons-material"; // Adjust the import path as needed
 import AuthService from "../../../services/AuthServices/AuthServices";
+import { useNavigate } from "react-router-dom";
 
 // Profile Data Service (for profile-specific operations)
 const ProfileService = {
@@ -45,6 +46,7 @@ const ProfilePage = () => {
   const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
 
+    const navigate = useNavigate();
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
@@ -94,16 +96,23 @@ const ProfilePage = () => {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await AuthService.logout();
-      // Redirect to login page or home page after logout
-      window.location.href = "/signin"; // Or use React Router navigation
-    } catch (error) {
-      console.error("Logout failed", error);
-    }
-  };
+const handleLogout = async () => {
+  try {
+    await AuthService.logout();
+    // Remove token and any other auth data
+    localStorage.removeItem("token");
+    sessionStorage.clear();
 
+    // Use navigate instead of window.location for better SPA behavior
+    navigate("/signin", { replace: true });
+  } catch (error) {
+    console.error("Logout failed", error);
+    // Show error message to user if logout fails
+    setError("Logout failed. Please try again.");
+  }
+};
+
+  //  window.location.href = "/signin";
   if (loading) return <Box>Loading...</Box>;
   if (error) return <Box>Error: {error}</Box>;
   if (!profileData) return <Box>No profile data available</Box>;
@@ -115,6 +124,7 @@ const ProfilePage = () => {
         flexDirection: "column",
       }}
     >
+      
       {/* Profile Section */}
       <Box
         sx={{

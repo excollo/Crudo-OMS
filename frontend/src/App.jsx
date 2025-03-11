@@ -15,6 +15,7 @@ import NotificationPage from "./pages/NotificationPage/NotificationPage";
 import Profile from "./pages/Homepage/ProfilePage.jsx/Profile";
 import ProtectedRoute from "./pages/Homepage/ProtectedRoute";
 import Dashboard from "./pages/Dashboard/Dashboard";
+import SidebarLayout from "./pages/Homepage/SidebarLayout";
 
 function App() {
   const isAuthenticated = localStorage.getItem("token") !== null; // Check if user is logged in
@@ -23,36 +24,40 @@ function App() {
     <>
       <Routes>
         {/* Public routes - accessible without authentication */}
-        <Route
+        {/* <Route
           path="/"
           element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />}
-        />
+        /> */}
         <Route path="/signin" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/reset-password" element={<ForgotPasswordPage />} />
+
         <Route path="/login-with-phone" element={<PhoneLoginPageComponent />} />
+        <Route path="/reset-password/:token" element={<NewPasswordPage />} />
+        <Route path="/reset-password" element={<ForgotPasswordPage />} />
         <Route
-          path="/password-recovery-confirmation"
+          path="/password-recovery-confirmation/reset-password/:token"
           element={<NewPasswordPage />}
         />
+
         <Route path="/verify-otp" element={<OTPVerificationPage />} />
 
         {/* Protected routes - require authentication */}
-        <Route path="/" element={<ProtectedRoute />}></Route>
-        <Route element={<Layout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/create-order" element={<CreateOrderPage />} />
-          <Route path="/create-customer" element={<CreateCustomerPage />} />
-          <Route path="/notifications" element={<NotificationPage />} />
-          {/* Add other protected routes with Layout here */}
+        <Route path="/" element={<ProtectedRoute />}>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/create-order" element={<CreateOrderPage />} />
+            <Route path="/create-customer" element={<CreateCustomerPage />} />
+            <Route path="/notifications" element={<NotificationPage />} />
+            {/* Add other protected routes with Layout here */}
+          </Route>
+          <Route element={<SidebarLayout />}>
+            <Route path="/profile" element={<Profile />} />
+          </Route>
         </Route>
-        <Route path="/profile" element={<Profile />} />
-
         {/* Catch-all Route */}
-        {/* <Route
-          path="*"
-          element={<Navigate to={isAuthenticated ? "/dashboard" : "/signin"} />}
-        /> */}
+        {/* 404 Route */}
+        <Route path="*" element={<Navigate to="/signin" />} />
       </Routes>
     </>
   );

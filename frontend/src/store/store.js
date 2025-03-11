@@ -1,21 +1,23 @@
 // src/redux/store.js
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '../redux/slices/authSlice';
+import productReducer from '../redux/slices/productInventrySlice'
 
 const store = configureStore({
   reducer: {
     auth: authReducer,
+    products: productReducer,
     // Add other reducers here as needed
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
         // Ignore these action types
-        ignoredActions: ['auth/login/fulfilled'],
+        ignoredActions: ["auth/login/fulfilled"],
         // Ignore these field paths in all actions
-        ignoredActionPaths: ['meta.arg', 'payload.timestamp'],
+        ignoredActionPaths: ["meta.arg", "payload.timestamp"],
         // Ignore these paths in the state
-        ignoredPaths: ['auth.user'],
+        ignoredPaths: ["auth.user"],
       },
     }),
 });

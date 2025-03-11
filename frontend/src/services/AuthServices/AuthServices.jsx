@@ -177,14 +177,45 @@ const AuthService = {
 
   // Reset password with token
   resetPassword: async (token, newPassword) => {
+    console.log("Sending reset request with token:", token);
+
     try {
       const response = await API.post("/auth/reset-password", {
         token,
         newPassword,
       });
+      console.log(token)
+      console.log(newPassword);
       return response.data;
     } catch (error) {
-      throw error.response?.data || error;
+      console.error("Reset password API error:", error);
+
+      // Better error handling
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        const errorMessage =
+          error.response.data?.message ||
+          error.response.data?.error ||
+          "Password reset failed";
+
+        throw {
+          status: error.response.status,
+          message: errorMessage,
+          details: error.response.data,
+        };
+      } else if (error.request) {
+        // The request was made but no response was received
+        throw {
+          message:
+            "No response from server. Please check your network connection.",
+        };
+      } else {
+        // Something happened in setting up the request
+        throw {
+          message: error.message || "An error occurred during password reset.",
+        };
+      }
     }
   },
 

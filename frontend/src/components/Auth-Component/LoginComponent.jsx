@@ -15,7 +15,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import medicineImage from "../../assets/authpage-images/madicine.png";
 import { clearError, loginUser } from "../../redux/slices/authSlice";
-
+import { setAuthToken, isValidToken } from "../../utils/AuthUtils";
 // Social login buttons component
 
 export const SocialLoginButtons = () => {
@@ -161,25 +161,35 @@ export const LoginForm = () => {
     }
   }, [error]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    dispatch(clearError());
+ const handleSubmit = async (e) => {
+   e.preventDefault();
+   dispatch(clearError());
 
-    try {
-      await dispatch(
-        loginUser({
-          email: formData.email,
-          password: formData.password,
-        })
-      ).unwrap();
-      // The redirect will happen in the useEffect above
-      // if (isAuthenticated ) {
-      navigate("/dashboard");
-    // }
-    } catch (err) {
-      console.error("Login error:", err);
-    }
-  };
+   try {
+     const result = await dispatch(
+       loginUser({
+         email: formData.email,
+         password: formData.password,
+       })
+     ).unwrap();
+
+     if (result?.accessToken) {
+       // Use the auth utility to handle token storage
+       if (setAuthToken(result.accessToken)) {
+         // Navigate to the intended destination or dashboard
+         const from = location.state?.from?.pathname || "/dashboard";
+         navigate(from, { replace: true });
+       } else {
+         throw new Error("Invalid token received");
+       }
+     } else if (result?.twoFactorRequired) {
+       navigate("/verify-otp");
+     }
+   } catch (err) {
+     console.error("Login error:", err);
+     dispatch(setError(err.message || "Login failed"));
+   }
+ };
 
 
   const handleForgotPassword = (e) => {

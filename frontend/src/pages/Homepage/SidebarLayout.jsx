@@ -66,7 +66,7 @@ const pageTitles = {
   },
 };
 
-const Layout = () => {
+const SidebarLayout = () => {
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -105,19 +105,11 @@ const Layout = () => {
       }}
     >
       {!isAuthRoute && <Sidebar />}
-      <Box>
-        <TopNavbar
-          title={pageTitle.title}
-          onSearch={handleSearch}
-          buttontext={pageTitle.buttonText}
-          buttontext2={pageTitle.buttonText2} // ✅ Passing second button text
-        />
-        <Box sx={{ width: "100%" }}>
-          <Outlet />
-        </Box>
+      <Box sx={{ml:10, width: "100%" }}>
+        <Outlet />
       </Box>
     </Box>
   );
 };
 
-export default Layout;
+export default SidebarLayout;

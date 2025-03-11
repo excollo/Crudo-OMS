@@ -9,6 +9,7 @@ import {
   InputAdornment,
   IconButton,
   CircularProgress,
+  Alert,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -17,18 +18,20 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import { RightSection } from "../../components/Auth-Component/LoginComponent";
 import { Logo } from "../../components/Logo-component/Logo";
-
-
+import { useDispatch } from "react-redux";
+import { resetPassword } from "../../redux/slices/authSlice"; // Adjust path as needed
 
 const NewPasswordPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
 
-  // Parse token and email from URL (from the reset link)
+  // Parse token from URL (from the reset link)
   const [token, setToken] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [debugInfo, setDebugInfo] = useState("");
 
   // Password states
   const [password, setPassword] = useState("");
@@ -46,23 +49,68 @@ const NewPasswordPage = () => {
     passwordsMatch: false,
   });
 
-  // Parse query parameters on component mount
+  // Extract and clean the token from the URL
   useEffect(() => {
-    const queryParams = new URLSearchParams(location.search);
-    const tokenParam = queryParams.get("token");
-    const emailParam = queryParams.get("email");
+    let foundToken = null;
 
-    // if (tokenParam && emailParam) {
-    //   setToken(tokenParam);
-    //   setEmail(emailParam);
-    //   setLoading(false);
-    // } else {
-    //   setError(
-    //     "Invalid or expired password reset link. Please request a new one."
-    //   );
-    //   setLoading(false);
-    // }
-    setLoading(false);
+    // Log for debugging
+    console.log("Current pathname:", location.pathname);
+    setDebugInfo(`Current pathname: ${location.pathname}`);
+
+    // Check if we're on the password-recovery-confirmation route
+    if (
+      location.pathname.includes(
+        "/password-recovery-confirmation/reset-password/"
+      )
+    ) {
+      // Extract token from URL path
+      const pathSegments = location.pathname.split("/");
+      // The token should be the last segment in the URL
+      foundToken = pathSegments[pathSegments.length - 1];
+      console.log("Token extracted from path:", foundToken);
+      setDebugInfo((prev) => `${prev}\nToken from path: ${foundToken}`);
+    }
+    // Check if we're on the reset-password route
+    else if (location.pathname.includes("/reset-password/")) {
+      const pathSegments = location.pathname.split("/reset-password/");
+      if (pathSegments.length > 1) {
+        foundToken = pathSegments[1];
+        console.log("Token extracted from reset-password path:", foundToken);
+        setDebugInfo(
+          (prev) => `${prev}\nToken from reset-password path: ${foundToken}`
+        );
+      }
+    }
+
+    // If not found in paths, check query parameters
+    if (!foundToken) {
+      const queryParams = new URLSearchParams(location.search);
+      foundToken = queryParams.get("token");
+      const emailParam = queryParams.get("email");
+
+      console.log("Token from query params:", foundToken);
+      setDebugInfo((prev) => `${prev}\nToken from query: ${foundToken}`);
+
+      if (emailParam) {
+        setEmail(emailParam);
+        console.log("Email from query:", emailParam);
+        setDebugInfo((prev) => `${prev}\nEmail: ${emailParam}`);
+      }
+    }
+
+    if (foundToken) {
+      // Remove any trailing slashes or special characters
+      foundToken = foundToken.replace(/[/\s]/g, "");
+      setToken(foundToken);
+      console.log("Final token set:", foundToken);
+      setDebugInfo((prev) => `${prev}\nFinal token: ${foundToken}`);
+      setLoading(false);
+    } else {
+      setError(
+        "Invalid or expired password reset link. Please request a new one."
+      );
+      setLoading(false);
+    }
   }, [location]);
 
   // Validate password on change
@@ -85,23 +133,45 @@ const NewPasswordPage = () => {
     if (!isPasswordValid) return;
 
     setIsSubmitting(true);
+    setError("");
 
     try {
-      // This would be your actual API call
-      // const response = await api.resetPassword(token, email, password);
+      console.log("Submitting with token:", token);
+      setDebugInfo((prev) => `${prev}\nSubmitting with token: ${token}`);
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Call the redux action to reset the password
+      const result = await dispatch(
+        resetPassword({
+          token,
+          newPassword: password,
+        })
+      ).unwrap();
+
+      console.log("Reset password result:", result);
+      setDebugInfo(
+        (prev) => `${prev}\nAPI Response: ${JSON.stringify(result)}`
+      );
 
       // Redirect to login page with success message
-      navigate("/login", {
+      navigate("/signin", {
         state: {
           message:
             "Password successfully reset. You can now login with your new password.",
         },
       });
     } catch (err) {
-      setError("Failed to reset password. Please try again.");
+      console.error("Password reset error:", err);
+      setDebugInfo((prev) => `${prev}\nError: ${JSON.stringify(err)}`);
+
+      // Handle specific error cases
+      if (err && typeof err === "object") {
+        setError(
+          err.message ||
+            "Password reset failed. The token may be invalid or expired."
+        );
+      } else {
+        setError("Password reset failed. Please request a new reset link.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -158,6 +228,7 @@ const NewPasswordPage = () => {
             alignItems: "center",
             height: "100%",
             p: 2,
+            
           }}
         >
           <Typography
@@ -169,9 +240,23 @@ const NewPasswordPage = () => {
           <Typography variant="body1" sx={{ mb: 3, textAlign: "center" }}>
             {error}
           </Typography>
+          {debugInfo && (
+            <Alert
+              severity="info"
+              sx={{ mb: 3, width: "100%", maxWidth: "600px" }}
+            >
+              <Typography
+                variant="body2"
+                component="pre"
+                sx={{ whiteSpace: "pre-wrap" }}
+              >
+                {debugInfo}
+              </Typography>
+            </Alert>
+          )}
           <Button
             variant="contained"
-            onClick={() => navigate("/forgot-password")}
+            onClick={() => navigate("/reset-password")}
             sx={{
               backgroundColor: "#A26E6C",
               "&:hover": {
@@ -179,7 +264,7 @@ const NewPasswordPage = () => {
               },
             }}
           >
-            Request New Reset Link
+            REQUEST NEW RESET LINK
           </Button>
         </Box>
       </Container>
@@ -201,7 +286,7 @@ const NewPasswordPage = () => {
     >
       <Logo />
 
-      <Grid container sx={{ height: "100%" }}>
+      <Grid container sx={{ mt: 5, height: "100%" }}>
         {/* Left Section - Form */}
         <Grid
           item
@@ -227,8 +312,23 @@ const NewPasswordPage = () => {
             </Typography>
 
             <Typography variant="body1" sx={{ mb: 3, color: "#555" }}>
-              Enter a new password for {email}
+              {email
+                ? `Enter a new password for ${email}`
+                : "Enter your new password"}
             </Typography>
+
+            {/* Debug info in development */}
+            {process.env.NODE_ENV === "development" && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography
+                  variant="caption"
+                  component="pre"
+                  sx={{ whiteSpace: "pre-wrap" }}
+                >
+                  Token being used: {token}
+                </Typography>
+              </Alert>
+            )}
 
             <Typography variant="body1" sx={{ fontWeight: "700", mb: 1 }}>
               New Password
@@ -384,82 +484,3 @@ const NewPasswordPage = () => {
 };
 
 export default NewPasswordPage;
-
-// ========================
-// PASSWORD RESET FLOW LOGIC
-// ========================
-
-/*
-Here's how the complete password reset flow works:
-
-1. User Flow:
-   a. User clicks "Forgot Password" on the login page
-   b. User enters email on the ForgotPasswordForm
-   c. After submission, user sees PasswordRecoveryConfirmation
-   d. User receives email with reset link
-   e. User clicks link in email, which opens NewPasswordPage with token/email in URL
-   f. User sets new password on NewPasswordPage
-   g. After successful reset, user is redirected to LoginPage with success message
-
-2. Implementation Details:
-
-   a. ForgotPasswordForm:
-      - Makes API call to request password reset email
-      - Redirects to PasswordRecoveryConfirmation on success
-      
-      // Example API call in ForgotPasswordForm
-      const requestPasswordReset = async (email) => {
-        try {
-          const response = await fetch('/api/auth/forgot-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
-          });
-          
-          if (response.ok) {
-            navigate('/password-recovery-confirmation', { state: { email } });
-          } else {
-            setError('Failed to send reset email');
-          }
-        } catch (err) {
-          setError('Network error');
-        }
-      };
-
-   b. Email Link Format:
-      - The backend generates a secure token for password reset
-      - Email contains link like: https://yourapp.com/reset-password?token=abc123&email=user@example.com
-      
-   c. NewPasswordPage:
-      - Extracts token and email from URL parameters
-      - Validates token with backend before allowing password reset
-      - Makes API call to set new password when form is submitted
-      
-      // Example API call in NewPasswordPage
-      const resetPassword = async (token, email, newPassword) => {
-        try {
-          const response = await fetch('/api/auth/reset-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, email, newPassword })
-          });
-          
-          if (response.ok) {
-            navigate('/login', { 
-              state: { message: 'Password successfully reset. You can now login with your new password.' } 
-            });
-          } else {
-            setError('Failed to reset password');
-          }
-        } catch (err) {
-          setError('Network error');
-        }
-      };
-
-3. Security Considerations:
-   - Reset tokens should be single-use and time-limited (typically 1 hour)
-   - Tokens should be securely generated with sufficient entropy
-   - Password requirements should be enforced on both client and server side
-   - Rate limiting should be implemented for reset requests
-*/
-// Last edited 6 minutes ago

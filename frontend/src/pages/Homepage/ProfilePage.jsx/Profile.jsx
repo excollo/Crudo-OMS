@@ -2,6 +2,7 @@ import React from "react";
 import ProfilePage from "../../../components/HomeComponents/Profile/ProfileComponent";
 import { Box, Button, CssBaseline, Typography } from "@mui/material";
 import SearchComponent from "../../../components/HomeComponents/Navbars/SearchComponent";
+import Sidebar from "../../../components/HomeComponents/Navbars/Sidebar";
 
 const Profile = () => {
   const handleEditProfile = () => {
@@ -23,6 +24,7 @@ const Profile = () => {
       }}
     >
       <CssBaseline />
+      
       <Box
         sx={{
           display: "flex",
@@ -86,7 +88,6 @@ const Profile = () => {
           //   border: "2px solid #eee",
           borderRadius: 2,
           mt: 8,
-          
         }}
       >
         <ProfilePage />
