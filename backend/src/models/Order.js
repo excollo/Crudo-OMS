@@ -76,6 +76,21 @@ const OrderSchema = new mongoose.Schema(
         message: "Order ID must be a positive integer",
       },
     },
+    swilSeriesId: {
+      type: Number,
+      required: [true, "SwilERP Series ID is required"],
+      validate: {
+        validator: Number.isInteger,
+        message: "Series ID must be an integer",
+      },
+    },
+    swilERPStatusDetails: {
+      currentStatus: String,
+      nextStatus: String,
+      lastModified: Date,
+      remarks: String,
+      employee: String,
+    },
     orderStatus: {
       type: String,
       required: true,

@@ -1,103 +1,42 @@
-# Crudo Platform - WhatsApp Sales Order Management
-
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![Coverage](https://img.shields.io/badge/coverage-90%25-blue)
-![License](https://img.shields.io/badge/license-MIT-lightgrey)
-
-# **Crudo Platform**
+# Crudo OMS Backend
 
 ## Overview
-The **Crudo Platform** is an advanced **Order Management System** built for the **WhatsApp Sales Channel**, integrating seamlessly with **SwilERP** for inventory, billing, and fulfillment. It provides a structured and efficient way to manage orders, process payments, and track customer interactions via WhatsApp.
+Crudo Order Management System (OMS) Backend is a service that integrates with SwilERP for pharmacy order management, authentication, and inventory tracking.
 
-### Key Features
-### **Authentication & Security**
-- JWT & OAuth authentication with **Role-Based Access Control (RBAC)**.
-- Secure token storage, rate limiting, brute-force prevention.
-- **SwilERP Single Sign-On (SSO)** support.
+## Features
 
-### **Order Management & Tracking**
-- **WhatsApp-based order placement** and tracking.
-- Real-time **inventory syncing with SwilERP**.
-- Digital prescription management with **PDF generation & secure storage**.
+### 🔐 Authentication & Authorization
+- JWT-based authentication with refresh tokens
+- Role-based access control (Admin/Pharmacist)
+- Two-factor authentication support
+- Password reset functionality
 
-### **Customer Chat & Interaction**
-- **Session-based chat storage** (Redis for short-term, MongoDB for long-term).
-- WhatsApp API integration for **order inquiries and tracking**.
-- **Automated chatbot support** for common customer queries.
+### 📦 Order Management
+- Create and track orders
+- SwilERP integration for inventory sync
+- Order status tracking
+- Real-time pricing calculations
 
-### **Background Jobs & Workers**
-- **Order synchronization** with SwilERP.
-- **Chat session management** for returning customers.
-- **Notification system** (Email/SMS/WhatsApp alerts).
+### 📊 Inventory Management
+- Product listing and details
+- Real-time stock updates
+- SwilERP inventory sync
 
-### **Logging & Monitoring**
-- Request logging, error tracking, authentication logs.
-- **Background job monitoring** using BullMQ.
-- **Database & API performance tracking**.
+## Tech Stack
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Database**: MongoDB with Mongoose ORM
+- **Authentication**: JWT & bcrypt
+- **Email**: Nodemailer
+- **Validation**: Express Validator
+- **Security**: Helmet, CORS, Rate Limiting
+- **Integration**: SwilERP API
 
----
-
-## **Tech Stack**
-
-### **Backend**
-- **Node.js with Express.js**
-- **MongoDB + Mongoose ORM**
-- **Redis for caching & session storage**
-- **BullMQ for background jobs**
-- **SwilERP & WhatsApp API integrations**
-
-### **Frontend**
-- **React.js** with **MUI + Tailwind CSS**
-- **React Query** for state management
-- **Axios** for API handling
-- **React Hook Form + Zod** for validation
-
-### **DevOps & Security**
-- **Docker & Kubernetes (AKS)** for containerization
-- **CI/CD with GitHub Actions & ArgoCD**
-- **Reverse Proxy: NGINX + Traefik**
-- **Monitoring: Prometheus, Grafana, Loki**
-- **Security: Vault by HashiCorp, Cloudflare DDoS Protection**
-
----
-
-## **Installation & Setup**
-### **1. Clone the Repository**
-```sh
-  git clone https://github.com/excollo/Crudo-OMS.git
-  cd crudo-platform
-```
-
-### **2. Install Dependencies**
-```sh
-  cd backend && npm install  # Backend dependencies
-  cd frontend && npm install  # Frontend dependencies
-```
-
-### **3. Configure Environment Variables**
-Copy `.env.example` to `.env` and update required values.
-```sh
-  cp .env.example .env
-```
-
-### **4. Start Development Servers**
-```sh
-  npm run dev  # Start backend server
-  cd frontend && npm start  # Start frontend server
-```
-
-### **5. Run Background Workers**
-```sh
-  npm run start:order-worker  # Start order processing worker
-  npm run start:chat-worker  # Start chat session worker
-```
-
-### **6. Run Tests**
-```sh
-  npm test
-```
-
----
+## Prerequisites
+- Node.js 18+
+- MongoDB 5.x
+- SMTP server access
+- SwilERP API credentials
 
 ## **Folder Structure**
 
@@ -136,77 +75,117 @@ crudo-platform/
 
 ---
 
-## **API Documentation**
-Refer to [API-Specs.md](./docs/API-Specs.md) for detailed API endpoints.
 
-### **Sample API Response**
+## Installation
+
+### 1. Clone the repository
+```bash
+git clone <repository-url>
+cd backend
+```
+
+### 2. Install dependencies
+```bash
+npm install
+```
+
+### 3. Configure environment variables
+Create a `.env` file and add the following configuration:
+
+```ini
+# Server Configuration
+NODE_ENV=development
+PORT=3000
+API_VERSION=v1
+
+# MongoDB Configuration
+MONGO_URI=mongodb://root:rootpassword@localhost:27017/crudo_db?authSource=admin
+MONGO_DB_NAME=crudo_db
+
+# Authentication Secrets
+JWT_SECRET=your_jwt_secret_here
+JWT_REFRESH_SECRET=your_refresh_secret_here
+JWT_ACCESS_EXPIRY=1d
+JWT_REFRESH_EXPIRES_IN=7d
+
+# Email Configuration
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=your_email@example.com
+SMTP_PASS=your_email_password
+
+# SwilERP Configuration
+SWILERP_BASE_URL=https://api-test.swilerp.com/erp/v1/
+SWIL_API_KEY=your_swil_api_key
+
+# Frontend URL
+FRONTEND_URL=http://localhost:5173
+```
+
+### 4. Start the server
+```bash
+# Development
+npm run dev
+
+# Production
+npm start
+```
+
+## API Routes
+
+### 🔑 Authentication
+- `POST /api/auth/signup` - Register new user
+- `POST /api/auth/signin` - Login user
+- `POST /api/auth/logout` - Logout user
+- `POST /api/auth/refresh-token` - Refresh access token
+- `POST /api/auth/request-password-reset` - Request password reset
+- `POST /api/auth/reset-password` - Reset password
+- `POST /api/auth/verify-2fa` - Verify 2FA code
+
+### 📦 Orders
+- `POST /api/order/create-order` - Create new order
+- `GET /api/order/orders` - Get all orders
+- `GET /api/order/orders/:orderId` - Get order by ID
+
+### 📊 Inventory
+- `GET /api/inventory/products` - Get product list
+- `GET /api/inventory/products/:id` - Get product by ID
+
+## 🛡️ Security Features
+- CORS protection
+- Rate limiting
+- Helmet security headers
+- Request sanitization
+- XSS protection
+- MongoDB injection prevention
+
+## ⚠️ Error Handling
+The API uses standardized error responses:
+
 ```json
 {
-  "orderId": "12345",
-  "status": "Processing",
-  "customer": {
-    "name": "John Doe",
-    "phone": "+1234567890"
-  }
+  "success": false,
+  "message": "Error message",
+  "errors": ["Detailed error information"]
 }
 ```
 
----
+## 📜 Logging
+- Request logging with Winston
+- Authentication activity logging
+- Error logging with stack traces
 
-## **Database Schema Overview**
+## 🤝 Contributing
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-### **Orders Collection**
-```json
-{
-  "_id": "ObjectId",
-  "customerId": "ObjectId",
-  "items": [
-    { "medicine": "Paracetamol", "quantity": 2 }
-  ],
-  "status": "Processing",
-  "createdAt": "ISODate",
-  "updatedAt": "ISODate"
-}
-```
-
-### **Chat Sessions Collection**
-```json
-{
-  "_id": "ObjectId",
-  "customerId": "ObjectId",
-  "messages": [
-    { "text": "Do you have aspirin?", "timestamp": "ISODate" }
-  ],
-  "sessionActive": true
-}
-```
+## 📝 License
+This project is licensed under the MIT License.
 
 ---
 
-## **System Requirements**
-- **Node.js 18+**
-- **MongoDB 5.x**
-- **Redis 7.x**
-- **SwilERP API access**
-- **WhatsApp Business API setup**
-- **SMTP credentials for email notifications**
-
----
-
-## **Contributing**
-We welcome contributions! Follow these steps:
-1. Fork the repository.
-2. Create a feature branch.
-3. Submit a pull request with detailed changes.
-
----
-
-## **License**
-This project is licensed under the **MIT License**.
-
----
-
-## **Contact**
-- **Support Email:** support@crudoplatform.com
-- **GitHub Issues:** [Report an issue](https://github.com/excollo/Crudo-OMS/issues)
+This README provides a structured overview of your backend setup, including installation instructions, environment configuration, API routes, and security features. Let me know if you'd like any modifications!
 

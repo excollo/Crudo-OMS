@@ -2,8 +2,15 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const User = require("../models/User");
-const {generateAccessToken, generateRefreshToken} = require("../utils/generateTokens");
-const { UnauthorizedError, ConflictError, BadRequestError } = require("../utils/customErrors");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+} = require("../utils/generateTokens");
+const {
+  UnauthorizedError,
+  ConflictError,
+  BadRequestError,
+} = require("../utils/customErrors");
 const { sendEmail } = require("../utils/sendEmail");
 
 // Sign-up service
@@ -20,11 +27,20 @@ const signup = async (userData) => {
 
 // Sign-in service
 const signin = async ({ email, password }) => {
+
   const user = await User.findOne({ email }).select(
     "+password +twoFactorMethod"
   );
-  if (!user || !(await bcrypt.compare(password, user.password)))
+  if (!user) {
+    console.log("No user found with email:", email);
     throw new UnauthorizedError("Invalid credentials");
+  }
+
+  const isValidPassword = await bcrypt.compare(password, user.password);
+
+  if (!isValidPassword) {
+    throw new UnauthorizedError("Invalid credentials");
+  }
 
   if (user.twoFactorMethod !== "disabled") {
     // Generate and send 2FA token
@@ -51,7 +67,6 @@ const signin = async ({ email, password }) => {
 
   return { user, accessToken, refreshToken };
 };
-
 
 const verifyTwoFactorLogin = async (email, token) => {
   // Find user by email
@@ -160,24 +175,31 @@ const requestPasswordReset = async (email) => {
 
 // Reset password service
 const resetPassword = async (token, newPassword) => {
+  if (newPassword.length < 8) {
+    throw new BadRequestError("Password must be at least 8 characters long");
+  }
+  
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
   // Find user with matching hashed token
   const user = await User.findOne({
     resetPasswordToken: hashedToken,
     resetPasswordExpires: { $gt: Date.now() },
-  });
+  }).select("+password");
 
   if (!user) {
     throw new BadRequestError("Invalid or expired token");
   }
 
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
   // Update password
-  user.password = await bcrypt.hash(newPassword, 10);
+  user.password = hashedPassword;
   user.resetPasswordToken = undefined;
   user.resetPasswordExpires = undefined;
 
   await user.save();
+
   return { message: "Password successfully reset" };
 };
 
@@ -188,5 +210,5 @@ module.exports = {
   logout,
   requestPasswordReset,
   resetPassword,
-  verifyTwoFactorLogin
+  verifyTwoFactorLogin,
 };
