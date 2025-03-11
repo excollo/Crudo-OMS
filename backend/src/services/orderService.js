@@ -215,7 +215,28 @@ const getAllOrders = async (page = 1, limit = 10, sortBy = 'createdAt', sortOrde
   }
 }
 
+const getOrderById = async (orderId) => {
+  try{
+    const order = await Order.findOne({
+      swilOrderId: parseInt(orderId)
+    })
+    .lean()
+    .exec();
+
+    if(!order){
+      throw new ValidationError('Order not found');
+    }
+    return order;
+  } catch(error){
+    if(error.name === 'ValidationError'){
+      throw new ValidationError(error.message);
+    }
+    throw new InternalServerError(`Failed to fetch order: ${error.message}`);
+  }
+}
+
 module.exports = {
   createOrder,
-  getAllOrders
+  getAllOrders,
+  getOrderById
 };

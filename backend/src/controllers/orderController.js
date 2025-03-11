@@ -36,7 +36,18 @@ const getAllOrders = async (req,res) => {
   }
 }
 
+const getOrderById = async (req, res) => {
+  try{
+    const { orderId } = req.params;
+    const order = await orderService.getOrderById(orderId);
+    sendResponse(res, 200, "Order fetched successfully", order);
+  } catch(error){
+    handleControllerError(error, req, res, appLogger);
+  }
+}
+
 module.exports = {
   createOrder,
-  getAllOrders
+  getAllOrders,
+  getOrderById
 };

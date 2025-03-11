@@ -25,4 +25,11 @@ router.get(
   orderController.getAllOrders
 )
 
+router.get(
+  "/orders/:orderId",
+  authMiddleware.authenticate,
+  logActivity,
+  orderController.getOrderById
+)
+
 module.exports = router;
