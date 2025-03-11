@@ -143,7 +143,7 @@ npm run dev
 ## Tech Stack
 - **Frontend**: React, Redux, MUI, Axios
 - **Backend**: Node.js, Express, MongoDB/SQL (SwilERP Integration)
-- **Security**: JWT Authentication, Role-based Access, OWASP Guidelines
+- **Security**: JWT Authentication, Role-based Access
 
 ## Contributing
 1. Fork the repository
