@@ -76,47 +76,64 @@ const AuthService = {
   },
 
   // Login user
-  login: async (email, password) => {
+  // Update the login function in AuthService.js
+  login: async (credentials) => {
     try {
-      const response = await API.post("/auth/signin", { email, password });
+      const response = await API.post("/auth/signin", credentials);
+      console.log("Raw API Response:", response.data);
 
-      console.log("API Response:", response.data); // Check what the backend returns
+      // Extract data from nested structure
+      const { data, message } = response.data;
 
-      if (response.data.requiresTwoFactor) {
+      // Check if user has 2FA enabled
+      if (
+        data?.user?.twoFactorMethod &&
+        data?.user?.twoFactorMethod !== "disabled"
+      ) {
+        // Return early with 2FA required flag and temporary token
         return {
           requiresTwoFactor: true,
-          userId: response.data.userId,
-          email,
+          email: credentials.email,
+          userId: data.user._id,
+          tempToken: data.tempToken, // Make sure your backend returns this
         };
       }
 
-      // Handling possible API response structures
-      const user = response.data.user || response.data.data?.user;
-      const accessToken =
-        response.data.accessToken || response.data.data?.tokens?.accessToken;
-      const refreshToken =
-        response.data.refreshToken || response.data.data?.tokens?.refreshToken;
-
-      if (!accessToken || !refreshToken || !user) {
-        console.error("Invalid API response:", response.data);
-        throw new Error("Missing accessToken, refreshToken, or user from API");
+      // If 2FA is not enabled, proceed with normal login
+      if (!data?.tokens?.accessToken) {
+        console.error("Invalid response structure:", data);
+        throw new Error("Authentication failed: No access token received");
       }
 
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
+      // Extract user and tokens
+      const { user, tokens } = data;
+
+      // Store auth data
+      localStorage.setItem("accessToken", tokens.accessToken);
+      localStorage.setItem("refreshToken", tokens.refreshToken);
       localStorage.setItem("user", JSON.stringify(user));
 
-      return { user, accessToken };
+      return {
+        user,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        success: true,
+      };
     } catch (error) {
-      console.error("Login API Error:", error.response?.data || error);
-      throw error.response?.data || error;
+      console.error("Login API Error:", error);
+      throw error.response?.data?.message || error.message || "Login failed";
     }
   },
-
   // Verify 2FA token
-  verifyTwoFactor: async (email, token) => {
+ 
+  verifyTwoFactor: async (email, token, tempToken) => {
     try {
-      const response = await API.post("/auth/verify-2fa", { email, token });
+      const response = await API.post("/auth/verify-2fa", {
+        email,
+        token,
+        tempToken, // Include the temporary token from login
+      });
+
       const { user, accessToken, refreshToken } = response.data;
 
       // Store tokens and user data
@@ -184,7 +201,7 @@ const AuthService = {
         token,
         newPassword,
       });
-      console.log(token)
+      console.log(token);
       console.log(newPassword);
       return response.data;
     } catch (error) {

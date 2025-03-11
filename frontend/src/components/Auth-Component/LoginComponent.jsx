@@ -111,7 +111,7 @@ export const LoginForm = () => {
   });
   const [passwordAttempts, setPasswordAttempts] = useState(0);
   const [showPasswordHint, setShowPasswordHint] = useState(false);
-
+const [Error,setError] = useState("")
   const { loading, error, twoFactorRequired, isAuthenticated } = useSelector(
     (state) => state.auth
   );
@@ -161,37 +161,49 @@ export const LoginForm = () => {
     }
   }, [error]);
 
- const handleSubmit = async (e) => {
-   e.preventDefault();
-   dispatch(clearError());
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  dispatch(clearError());
 
-   try {
-     const result = await dispatch(
-       loginUser({
-         email: formData.email,
-         password: formData.password,
-       })
-     ).unwrap();
+  try {
+    setError("");
+    const result = await dispatch(
+      loginUser({
+        email: formData.email,
+        password: formData.password,
+      })
+    ).unwrap();
 
-     if (result?.accessToken) {
-       // Use the auth utility to handle token storage
-       if (setAuthToken(result.accessToken)) {
-         // Navigate to the intended destination or dashboard
-         const from = location.state?.from?.pathname || "/dashboard";
-         navigate(from, { replace: true });
-       } else {
-         throw new Error("Invalid token received");
-       }
-     } else if (result?.twoFactorRequired) {
-       navigate("/verify-otp");
-     }
-   } catch (err) {
-     console.error("Login error:", err);
-     dispatch(setError(err.message || "Login failed"));
-   }
- };
+    console.log("Login result:", result);
 
+    if (result.requiresTwoFactor) {
+      // User has 2FA enabled, redirect to OTP page
+      navigate("/verify-otp", {
+        state: {
+          email: formData.email,
+          userId: result._id,
+          tempToken: result.tempToken,
+        },
+        replace: true,
+      });
+    } else if (result.accessToken) {
+      // Normal login successful
+      setAuthToken(result.accessToken);
+      navigate(defaultPath, { replace: true });
+    } else {
+      throw new Error("Invalid login response");
+    }
+  } catch (err) {
+    console.error("Login error:", err);
+    setError(typeof err === "string" ? err : "Login failed. Please try again.");
+    setPasswordAttempts((prev) => prev + 1);
 
+    // Show password hint after multiple failed attempts
+    if (passwordAttempts >= 2 && !showPasswordHint) {
+      setShowPasswordHint(true);
+    }
+  }
+};
   const handleForgotPassword = (e) => {
     e.preventDefault();
     navigate("/reset-password");

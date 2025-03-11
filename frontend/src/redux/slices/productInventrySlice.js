@@ -1,41 +1,43 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { productService } from "../../services/ProductInventry/ProductService";
+import axios from "axios";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 const initialState = {
   products: [],
   selectedProducts: [],
   loading: false,
   error: null,
-  totalPages: 0,
-  currentPage: 1,
+  hasMore: false, // Added hasMore flag for infinite scrolling
 };
 
 export const fetchProducts = createAsyncThunk(
   "products/fetchProducts",
-  async ({ pageNo = 1, pageSize = 10, search = "" }, { rejectWithValue }) => {
+  async ({ search, pageSize, page, append = false }, { rejectWithValue }) => {
     try {
-      const response = await productService.getProducts(
-        pageNo,
-        pageSize,
-        search
-      );
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data || "Failed to fetch products"
-      );
-    }
-  }
-);
+      const response = await axios.get(`${API_URL}/inventory/products`, {
+        params: { search, pageSize, page }, // Added page parameter
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
-export const fetchProductById = createAsyncThunk(
-  "products/fetchProductById",
-  async (id, { rejectWithValue }) => {
-    try {
-      const response = await productService.getProductById(id);
-      return response.data;
+      // Return both the data and metadata needed for pagination
+      return {
+        data: response.data.data || [],
+        append, // Flag to indicate if we should append or replace
+        hasMore: response.data.data.length === pageSize, // If we got full page, there might be more
+        page,
+      };
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Failed to fetch product");
+      if (!error.response) {
+        return rejectWithValue(
+          "Network error - Please check if the server is running"
+        );
+      }
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch products"
+      );
     }
   }
 );
@@ -49,7 +51,7 @@ const productSlice = createSlice({
         (product) => product.id === action.payload.id
       );
       if (!existingProduct) {
-        state.selectedProducts.push({ ...action.payload, quantity: 1 });
+        state.selectedProducts.push(action.payload);
       }
     },
     removeSelectedProduct: (state, action) => {
@@ -72,16 +74,29 @@ const productSlice = createSlice({
     builder
       .addCase(fetchProducts.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(fetchProducts.fulfilled, (state, action) => {
         state.loading = false;
-        state.products = action.payload.data;
-        state.totalPages = action.payload.totalPages;
-        state.currentPage = action.payload.currentPage;
+        state.error = null;
+
+        // Update products based on append flag
+        if (action.payload.append && action.payload.page > 1) {
+          // Append new products to existing ones for infinite scrolling
+          state.products = [...state.products, ...action.payload.data];
+        } else {
+          // Replace products for new searches
+          state.products = action.payload.data;
+        }
+
+        // Update pagination info
+        state.hasMore = action.payload.hasMore;
       })
       .addCase(fetchProducts.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+        state.products = [];
+        state.hasMore = false;
       });
   },
 });

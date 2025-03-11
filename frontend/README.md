@@ -3,45 +3,61 @@
 ## Overview
 The Order Management System (OMS) is a web-based platform that streamlines pharmacy orders via WhatsApp Sales Channel, integrating with SwilERP for inventory, billing, and fulfillment. It provides centralized order management, data security, analytics, and user efficiency.
 
-## Features
+## Key Features
 - **User Authentication** (Login, Registration, Role-based Access)
-- **Order Management** (Create, Update, Track Orders)
 - **Digital Prescription Upload & Processing**
-- **Analytics & Reporting** (Order Stats, Sales Reports, Inventory Insights)
 - **Audit Logs & Data Security**
 - **User Roles & Permissions** (Pharmacist, Administrator)
-- **Integration with SwilERP** for real-time data sync
+- **Enhanced Security**
+  - Two-Factor Authentication (2FA)
+  - JWT-based Authentication
+  - Role-based Access Control
+- **Order Management**
+  - WhatsApp Order Processing
+  - Digital Prescription Handling
+  - Order Tracking & Updates
+- **Analytics & Reports**
+  - Sales Performance Metrics
+  - Inventory Insights
+  - Compliance Reports
+- **System Integration**
+  - SwilERP Integration
+  - Real-time Data Sync
+  - Automated Notifications
 
-## Folder Structure
+
+## Tech Stack
+- React
+- Redux Toolkit
+- Material-UI (MUI)
+- Axios
+- Vite
+
+## Project Structure
 ```
-oms-frontend/
-│── public/                      # Static assets
-│── src/
-│   ├── components/               # Reusable UI components
-│   │    ├──Auth-component/
-│   │    ├──Logo-component/
-│   │    ├──Theme/
-│   ├── hooks/                    # Custom React hooks
-│   ├── pages/                     # Pages
-│   │	 ├──Auth/
-│   │    ├──Audit/
-│   │    ├──Dashboard/
-│   │    ├──Orders/
-│   │    ├──Prescriptions/
-│   │    ├──Reports/
-│   │    ├──Settings/
-│   │    ├──Users/
-│   ├── services/                  # API service calls
-│   ├── store/                     # Redux state management
-│   ├── utils/                      # Utility functions
-│   ├── App.jsx
-│   ├── main.jsx
-│   ├── router.js                   # React Router setup
-│── .env                             # Environment variables
-│── package.json
-│── vite.config.js
-│── README.md
-
+frontend/
+├── src/
+│   ├── components/
+│   │   ├── Auth-Component/       # Authentication components
+│   │   ├── HomeComponents/       # Dashboard & home components
+│   │   ├── Logo-component/       # Brand & logo components
+│   │   ├── NotificationComponents/
+│   │   ├── orderPageCompoents/   # Order management UI
+│   │   └── Theme/               # MUI theme customization
+│   ├── hooks/                   # Custom React hooks
+│   ├── pages/
+│   │   ├── Auth/               # Login, Register, 2FA pages
+│   │   ├── Dashboard/          # Main dashboard
+│   │   ├── Orders/            # Order management
+│   │   ├── Reports/           # Analytics & reporting
+│   │   └── Settings/          # User & system settings
+│   ├── redux/
+│   │   └── slices/            # Redux toolkit slices
+│   ├── services/              # API service integration
+│   ├── store/                 # Redux store configuration
+│   └── utils/                 # Helper functions
+├── public/                    # Static assets
+└── vite.config.js            # Vite configuration
 ```
 
 ## Installation & Setup
@@ -58,20 +74,30 @@ npm install
 
 Create an `.env` file and configure environment variables:
 ```sh
-VITE_API_BASE_URL=http://localhost:5000/api
+VITE_API_BASE_URL=http://localhost:3000/api
+VITE_APP_NAME="Crudo OMS"
 ```
 
 Run the project:
 ```sh
 npm run dev
 ```
+## Authentication Flow
+1. **Login**: Email/Password authentication
+2. **2FA Setup**: Optional two-factor authentication setup
+3. **2FA Verification**: 6-digit OTP verification when enabled
+4. **Token Management**: JWT-based session management
 
 ## API Routes
 ### 1. Authentication & User Management
-- `POST /api/auth/login` - Authenticate user
+- `POST /api/auth/signin` - User login
 - `POST /api/auth/logout` - Log out
-- `POST /api/auth/register` - Register new user (Admin only)
+- `POST /api/auth/signup` - Register new user (Admin only)
 - `POST /api/auth/refresh-token` - Refresh authentication token
+- `POST /api/auth/send-otp` - Send 2FA verification code
+- `POST /api/auth/verify-otp` - Verify 2FA code
+- `POST /api/auth/enable-2fa` - Enable two-factor auth
+- `POST /api/auth/disable-2fa` - Disable two-factor auth
 
 ### 2. Orders Management
 - `GET /api/orders` - Fetch all orders
@@ -104,6 +130,12 @@ npm run dev
 - `GET /api/settings` - Fetch system settings
 - `PUT /api/settings` - Update system configurations
 
+### 7. User Management
+- `GET /api/users/profile` - Get user profile
+- `PUT /api/users/profile` - Update user profile
+- `PUT /api/users/security` - Update security settings
+
+
 ## User Roles
 - **Pharmacist**: Create, update, and track orders
 - **Administrator**: Full access to analytics, data exports, and user management
@@ -128,6 +160,15 @@ npm run dev
    git push origin feature-branch
    ```
 5. Create a Pull Request
+
+## Scripts
+```bash
+npm run dev      # Start development server
+npm run build    # Build for production
+npm run preview  # Preview production build
+npm run lint     # Run ESLint
+npm run test     # Run tests
+```
 
 ## License
 MIT License

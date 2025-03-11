@@ -3,6 +3,7 @@ import ProfilePage from "../../../components/HomeComponents/Profile/ProfileCompo
 import { Box, Button, CssBaseline, Typography } from "@mui/material";
 import SearchComponent from "../../../components/HomeComponents/Navbars/SearchComponent";
 import Sidebar from "../../../components/HomeComponents/Navbars/Sidebar";
+import TwoFactorSettings from "../../../components/HomeComponents/Profile/TwoFactorSettings";
 
 const Profile = () => {
   const handleEditProfile = () => {
@@ -24,7 +25,7 @@ const Profile = () => {
       }}
     >
       <CssBaseline />
-      
+
       <Box
         sx={{
           display: "flex",
@@ -91,6 +92,9 @@ const Profile = () => {
         }}
       >
         <ProfilePage />
+        <Box>
+            <TwoFactorSettings/>
+          </Box>
       </Box>
     </Box>
   );

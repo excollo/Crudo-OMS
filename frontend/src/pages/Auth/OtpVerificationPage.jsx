@@ -42,8 +42,8 @@ const OTPVerificationPage = () => {
       newOtp[index] = value;
       setOtp(newOtp);
 
-      // Auto-focus next input if value is entered
-      if (value !== "" && index < 3) {
+      if (value !== "" && index < 5) {
+        // Changed to 5 for 6 digits
         inputRefs[index + 1].current.focus();
       }
     }
@@ -57,53 +57,54 @@ const OTPVerificationPage = () => {
   };
 
   // Handle OTP verification
-  const handleVerify = async (e) => {
-    e.preventDefault();
+const handleVerify = async (e) => {
+  e.preventDefault();
+  const otpValue = otp.join("");
 
-    const otpValue = otp.join("");
-    if (otpValue.length !== 4) {
-      setError("Please enter a valid 4-digit code");
-      return;
+  if (otpValue.length !== 6) {
+    // Changed to 6
+    setError("Please enter a valid 6-digit code");
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  try {
+    const result = await dispatch(
+      verifyTwoFactor({
+        email,
+        otp: otpValue,
+        tempToken: location.state?.tempToken,
+      })
+    ).unwrap();
+
+    if (result.accessToken) {
+      localStorage.setItem("accessToken", result.accessToken);
+      if (result.refreshToken) {
+        localStorage.setItem("refreshToken", result.refreshToken);
+      }
+      localStorage.setItem("user", JSON.stringify(result.user));
+      navigate("/dashboard", { replace: true });
     }
-
-    setIsSubmitting(true);
-
-    try {
-      // This would be your actual API call
-      // const response = await api.verifyOtp(email, otpValue);
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Redirect to set password page or dashboard
-      navigate("/login", { state: { email } });
-    } catch (err) {
-      setError("Invalid verification code. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Handle resend OTP
-  const handleResend = async () => {
-    setLoading(true);
-
-    try {
-      // This would be your actual API call
-      // const response = await api.resendOtp(email);
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Reset OTP fields
-      setOtp(["", "", "", ""]);
-      inputRefs[0].current.focus();
-    } catch (err) {
-      setError("Failed to resend verification code. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (err) {
+    setError(err.message || "Invalid verification code");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+ // Add resend OTP functionality
+ const handleResend = async () => {
+   setLoading(true);
+   try {
+     await dispatch(requestPasswordReset(email));
+     setOtp(["", "", "", ""]);
+     inputRefs[0].current.focus();
+   } catch (err) {
+     setError("Failed to resend code. Please try again.");
+   } finally {
+     setLoading(false);
+   }
+ };
 
   return (
     <Container
@@ -175,13 +176,7 @@ const OTPVerificationPage = () => {
 
             {/* OTP Input Fields */}
             <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                gap: 2,
-                mb: 3,
-                width: "100%",
-              }}
+              sx={{ display: "flex", justifyContent: "center", gap: 2, mb: 3 }}
             >
               {otp.map((digit, index) => (
                 <InputBase
@@ -197,8 +192,8 @@ const OTPVerificationPage = () => {
                       textAlign: "center",
                       fontSize: "24px",
                       padding: "10px",
-                      width: "50px",
-                      height: "50px",
+                      width: "40px",
+                      height: "40px",
                       border: "1px solid #ccc",
                       borderRadius: "4px",
                     },

@@ -29,9 +29,9 @@ export const registerUser = createAsyncThunk(
 
 export const loginUser = createAsyncThunk(
   "auth/login",
-  async ({ email, password }, { rejectWithValue }) => {
+  async (credentials, { rejectWithValue }) => {
     try {
-      const response = await AuthService.login(email, password);
+      const response = await AuthService.login(credentials);
       return response;
     } catch (error) {
       return rejectWithValue(error.message || "Login failed");
@@ -41,9 +41,9 @@ export const loginUser = createAsyncThunk(
 
 export const verifyTwoFactor = createAsyncThunk(
   "auth/verifyTwoFactor",
-  async ({ email, token }, { rejectWithValue }) => {
+  async ({ email, otp, tempToken }, { rejectWithValue }) => {
     try {
-      const response = await AuthService.verifyTwoFactor(email, token);
+      const response = await AuthService.verifyTwoFactor(email, otp, tempToken);
       return response;
     } catch (error) {
       return rejectWithValue(error.message || "Verification failed");
@@ -92,6 +92,7 @@ export const enableTwoFactor = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await AuthService.enableTwoFactor();
+      console.log(response)
       return response;
     } catch (error) {
       return rejectWithValue(error.message || "Failed to enable 2FA");
@@ -157,13 +158,16 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
+        state.error = null;
 
         if (action.payload.requiresTwoFactor) {
           state.twoFactorRequired = true;
           state.tempEmail = action.payload.email;
-        } else {
-          state.user = action.payload.user;
+          state.isAuthenticated = false;
+        } else if (action.payload.success) {
           state.isAuthenticated = true;
+          state.user = action.payload.user;
+          state.accessToken = action.payload.accessToken;
           state.twoFactorRequired = false;
           state.tempEmail = null;
         }
@@ -171,32 +175,25 @@ const authSlice = createSlice({
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+        state.isAuthenticated = false;
       })
 
       // Two-factor verification cases
       .addCase(verifyTwoFactor.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(verifyTwoFactor.fulfilled, (state, action) => {
-        state.loading = false;
-        state.user = action.payload.user;
-        state.isAuthenticated = true;
-        state.twoFactorRequired = false;
-        state.tempEmail = null;
-      })
-      .addCase(verifyTwoFactor.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-
-      // Logout cases
-      .addCase(logoutUser.fulfilled, (state) => {
-        state.user = null;
-        state.isAuthenticated = false;
-        state.twoFactorRequired = false;
-        state.tempEmail = null;
-      })
+      state.loading = true;
+      state.error = null;
+    })
+    .addCase(verifyTwoFactor.fulfilled, (state, action) => {
+      state.loading = false;
+      state.isAuthenticated = true;
+      state.user = action.payload.user;
+      state.twoFactorRequired = false;
+      state.error = null;
+    })
+    .addCase(verifyTwoFactor.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    })
 
       // Password reset request cases
       .addCase(requestPasswordReset.pending, (state) => {
