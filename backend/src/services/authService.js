@@ -5,7 +5,6 @@ const User = require("../models/User");
 const {generateAccessToken, generateRefreshToken} = require("../utils/generateTokens");
 const { UnauthorizedError, ConflictError, BadRequestError } = require("../utils/customErrors");
 const { sendEmail } = require("../utils/sendEmail");
-const { jwtConfig } = require("../config/config");
 
 // Sign-up service
 const signup = async (userData) => {
@@ -132,35 +131,24 @@ const requestPasswordReset = async (email) => {
   const user = await User.findOne({ email });
   if (!user) throw new BadRequestError("User not found");
 
-  if (user.resetPasswordExpires && user.resetPasswordExpires > Date.now()) {
-    throw new BadRequestError("Reset already requested. Try again later.");
-  }
-
   // Generate a secure reset token
   const resetToken = crypto.randomBytes(32).toString("hex");
-  console.log("Generated reset token:", resetToken.substring(0, 10) + "...");
 
-  const secretKey = process.env.SECRET_KEY;
-  if (!secretKey) {
-    throw new Error("SECRET_KEY is not defined in environment variables");
-  }
+  // Store the plain token hash
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
 
-  // Encrypt token
-  const key = crypto.createHash("sha256").update(secretKey).digest();
-  const iv = crypto.randomBytes(16);
-
-  const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
-  let encrypted = cipher.update(resetToken, "utf8", "hex");
-  encrypted += cipher.final("hex");
-
-  // Store encrypted token
-  user.resetPasswordToken = `${iv.toString("hex")}:${encrypted}`;
+  // Store hashed token in database
+  user.resetPasswordToken = hashedToken;
   user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
   await user.save();
 
-  // Send reset email
+  // Send reset email with plain token
   const resetURL = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+
   await sendEmail(
     user.email,
     "Password Reset Request",
@@ -172,61 +160,24 @@ const requestPasswordReset = async (email) => {
 
 // Reset password service
 const resetPassword = async (token, newPassword) => {
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-  // Find user with valid reset token and not expired
-  const users = await User.find({
-    resetPasswordToken: { $exists: true, $ne: null },
+  // Find user with matching hashed token
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
     resetPasswordExpires: { $gt: Date.now() },
-  }).select("+resetPasswordToken +resetPasswordExpires");
+  });
 
-  let validUser = null;
-
-  for (const user of users) {
-    try {
-      if (!user.resetPasswordToken) {
-        console.log("Skipping user with null reset token");
-        continue;
-      }
-
-      // Decrypt and verify token for each user
-      const [ivHex, encryptedToken] = user.resetPasswordToken.split(":");
-
-      if (!ivHex || !encryptedToken) {
-        console.log("Invalid token format for user");
-        continue;
-      }
-
-      const iv = Buffer.from(ivHex, "hex");
-      const key = crypto
-        .createHash("sha256")
-        .update(process.env.SECRET_KEY)
-        .digest();
-
-      const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
-      let decrypted = decipher.update(encryptedToken, "hex", "utf8");
-      decrypted += decipher.final("utf8");
-
-      if (decrypted === token) {
-        validUser = user;
-        break;
-      }
-    } catch (err) {
-      console.error("Error processing user token:", err.message);
-      console.error("Full error:", err);
-      continue;
-    }
-  }
-
-  if (!validUser) {
+  if (!user) {
     throw new BadRequestError("Invalid or expired token");
   }
 
-  // Update password for valid user
-  validUser.password = await bcrypt.hash(newPassword, 10);
-  validUser.resetPasswordToken = undefined;
-  validUser.resetPasswordExpires = undefined;
+  // Update password
+  user.password = await bcrypt.hash(newPassword, 10);
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
 
-  await validUser.save();
+  await user.save();
   return { message: "Password successfully reset" };
 };
 

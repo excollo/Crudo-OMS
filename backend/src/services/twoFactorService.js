@@ -60,6 +60,23 @@ class TwoFactorService {
    * @returns {Promise<Object>} - Success message if verification passes.
    * @throws {UnauthorizedError} - If the token is invalid or expired.
    */
+  async verifyTwoFactorSetup(userId, token) {
+    const user = await this.getUserById(
+      userId,
+      "+twoFactorTemporaryToken +twoFactorTokenExpires"
+    );
+
+    // Validate the provided token
+    if (!user.validateTwoFactorToken(token)) {
+      throw new UnauthorizedError("Invalid or expired verification code");
+    }
+
+    // Enable 2FA and clear temporary tokens
+    user.twoFactorMethod = "email";
+    await this.clearTwoFactorTokens(user);
+
+    return { message: "2FA successfully enabled" };
+  }
 
   /**
    * Disables two-factor authentication for a user.
