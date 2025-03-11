@@ -12,6 +12,31 @@ const createOrder = async (req, res) => {
   }
 };
 
+const getAllOrders = async (req,res) => {
+  try{
+    const {page = 1, limit = 10, sortBy = 'createdAt', sortOrder = -1} = req.query;
+    const filters = {
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+      orderStatus: req.query.status,
+      customerId: req.query.customerId
+    }
+
+    const orders = await orderService.getAllOrders(
+      parseInt(page),
+      parseInt(limit),
+      sortBy,
+      parseInt(sortOrder),
+      filters
+    );
+
+    sendResponse(res, 200, "Orders fetched successfully", orders);
+  } catch(error){
+    handleControllerError(error, req, res, appLogger);
+  }
+}
+
 module.exports = {
   createOrder,
+  getAllOrders
 };

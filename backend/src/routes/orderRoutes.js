@@ -18,4 +18,11 @@ router.post(
   orderController.createOrder
 );
 
+router.get(
+  "/orders",
+  authMiddleware.authenticate,
+  logActivity,
+  orderController.getAllOrders
+)
+
 module.exports = router;

@@ -163,6 +163,59 @@ const handleOrderError = (error) => {
   throw new InternalServerError("Failed to create order");
 };
 
+const getAllOrders = async (page = 1, limit = 10, sortBy = 'createdAt', sortOrder = -1, filters = {}) => {
+  try{
+    const query = {};
+
+    if(filters.startDate || filters.endDate){
+      query.createdAt = {};
+      if(filters.starDate){
+        query.createdAt.$gte = new Date(filters.starDate);
+      }
+
+      if(filters.endDate){
+        query.createdAt.$lte = new Date(filters.endDate);
+      }
+    }
+
+    if(filters.orderStatus){
+      query.orderStatus = filters.orderStatus.toUpperCase();
+    }
+
+    if(filters.customerId){
+      query['customer.customerId'] = parseInt(filters.customerId);
+    }
+
+    const skip = (page-1) * limit;
+
+    const sort = {};
+    sort[sortBy] = sortOrder;
+
+    const orders = await Order.find(query)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .exec();
+
+    const total = await Order.countDocuments(query);
+
+    return {
+      orders,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total/limit),
+        hasMore: page * limit < total
+      }
+    };
+  } catch(error){
+    throw new InternalServerError(`Failed to fetch orders: ${error.message}`);
+  }
+}
+
 module.exports = {
   createOrder,
+  getAllOrders
 };
