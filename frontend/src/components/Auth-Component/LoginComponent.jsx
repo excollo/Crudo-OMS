@@ -9,6 +9,7 @@ import {
   Link,
   Divider,
   CircularProgress,
+  Alert,
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -103,6 +104,8 @@ export const SocialLoginButtons = () => {
 };
 
 // Login Form Component
+
+ 
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -111,14 +114,14 @@ export const LoginForm = () => {
   });
   const [passwordAttempts, setPasswordAttempts] = useState(0);
   const [showPasswordHint, setShowPasswordHint] = useState(false);
-const [Error,setError] = useState("")
-  const { loading, error, twoFactorRequired, isAuthenticated } = useSelector(
+  const [localError, setLocalError] = useState("");
+const { loading, error, twoFactorRequired, isAuthenticated } = useSelector(
     (state) => state.auth
   );
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const location = useLocation();
-   const defaultPath = "/dashboard";
+  const defaultPath = "/dashboard";
 
   // Reset password hint when typing a new password
   useEffect(() => {
@@ -138,8 +141,7 @@ const [Error,setError] = useState("")
     });
   };
 
- 
-  // // Check if error contains password-related messages
+  // Check if error contains password-related messages
   useEffect(() => {
     if (error) {
       const passwordErrors = [
@@ -161,49 +163,44 @@ const [Error,setError] = useState("")
     }
   }, [error]);
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  dispatch(clearError());
-
-  try {
-    setError("");
-    const result = await dispatch(
-      loginUser({
-        email: formData.email,
-        password: formData.password,
-      })
-    ).unwrap();
-
-    console.log("Login result:", result);
-
-    if (result.requiresTwoFactor) {
-      // User has 2FA enabled, redirect to OTP page
-      navigate("/verify-otp", {
-        state: {
-          email: formData.email,
-          userId: result._id,
-          tempToken: result.tempToken,
-        },
-        replace: true,
-      });
-    } else if (result.accessToken) {
-      // Normal login successful
-      setAuthToken(result.accessToken);
+  // Redirect if 2FA is required after login
+  useEffect(() => {
+    if (twoFactorRequired) {
+      navigate("/verify-otp", { replace: true });
+    } else if (isAuthenticated) {
       navigate(defaultPath, { replace: true });
-    } else {
-      throw new Error("Invalid login response");
     }
-  } catch (err) {
-    console.error("Login error:", err);
-    setError(typeof err === "string" ? err : "Login failed. Please try again.");
-    setPasswordAttempts((prev) => prev + 1);
+  }, [twoFactorRequired, isAuthenticated, navigate]);
 
-    // Show password hint after multiple failed attempts
-    if (passwordAttempts >= 2 && !showPasswordHint) {
-      setShowPasswordHint(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    dispatch(clearError());
+    setLocalError("");
+
+    try {
+      const result = await dispatch(
+        loginUser({
+          email: formData.email,
+          password: formData.password,
+        })
+      ).unwrap();
+
+      // If 2FA is required, the redirect is handled by useEffect
+      // No need to do anything here as the state is updated in the reducer
+    } catch (err) {
+      console.error("Login error:", err);
+      setLocalError(
+        typeof err === "string" ? err : "Login failed. Please try again."
+      );
+      setPasswordAttempts((prev) => prev + 1);
+
+      // Show password hint after multiple failed attempts
+      if (passwordAttempts >= 2 && !showPasswordHint) {
+        setShowPasswordHint(true);
+      }
     }
-  }
-};
+  };
+
   const handleForgotPassword = (e) => {
     e.preventDefault();
     navigate("/reset-password");
@@ -237,10 +234,10 @@ const handleSubmit = async (e) => {
         Log in
       </Typography>
 
-      {error && !showPasswordHint && (
-        <Typography color="error" sx={{ mb: 2 }}>
-          {error}
-        </Typography>
+      {(error || localError) && !showPasswordHint && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {localError || error}
+        </Alert>
       )}
 
       <Typography variant="body1" sx={{ fontWeight: "600", mb: 1 }}>
@@ -305,7 +302,6 @@ const handleSubmit = async (e) => {
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
-            textDecoration: "none",
             fontWeight: "700",
             cursor: "pointer",
             minWidth: "auto",
@@ -407,14 +403,12 @@ const handleSubmit = async (e) => {
             "&:focus": { outline: "none" },
             "&:active": { outline: "none" },
             color: "#081F5C",
-            textDecoration: "none",
             p: 0,
             background:
               "linear-gradient(99.09deg, #FFB8B8 2.64%, #A0616A 100%)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
-            textDecoration: "none",
             cursor: "pointer",
           }}
         >
@@ -426,7 +420,6 @@ const handleSubmit = async (e) => {
     </Box>
   );
 };
-
 // export default LoginForm;
 
 // right section

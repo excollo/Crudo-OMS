@@ -3,7 +3,7 @@ import ProfilePage from "../../../components/HomeComponents/Profile/ProfileCompo
 import { Box, Button, CssBaseline, Typography } from "@mui/material";
 import SearchComponent from "../../../components/HomeComponents/Navbars/SearchComponent";
 import Sidebar from "../../../components/HomeComponents/Navbars/Sidebar";
-import TwoFactorSettings from "../../../components/HomeComponents/Profile/TwoFactorSettings";
+import TwoFactorSetupComponent from "../../../components/Auth-Component/TwoFactorSetupComponent";
 
 const Profile = () => {
   const handleEditProfile = () => {
@@ -93,7 +93,7 @@ const Profile = () => {
       >
         <ProfilePage />
         <Box>
-            <TwoFactorSettings/>
+            <TwoFactorSetupComponent/>
           </Box>
       </Box>
     </Box>

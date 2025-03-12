@@ -100,11 +100,12 @@ const handleLogout = async () => {
   try {
     await AuthService.logout();
     // Remove token and any other auth data
-    localStorage.removeItem("token");
-    sessionStorage.clear();
+    // localStorage.removeItem("token");
+    // sessionStorage.clear();
 
     // Use navigate instead of window.location for better SPA behavior
     navigate("/signin", { replace: true });
+    window.location.reload();
   } catch (error) {
     console.error("Logout failed", error);
     // Show error message to user if logout fails
