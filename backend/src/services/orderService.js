@@ -453,8 +453,147 @@ const getSwilERPOrderStatus = async (orderId, seriesId) => {
   }
 }
 
+const updateSwilERPStatus = async (payload, employeeId) => {
+  try {
+    // The payload needs to be wrapped in an array as the root element
+    const swilERPPayload = [
+      {
+        Tran: [
+          {
+            Select: true,
+            Transaction: "Sales Invoice",
+            PKID: payload.PKID,
+            FKSeriesID: payload.FKSeriesID,
+            Series: payload.Series || "",
+            EntryNo: payload.EntryNo || 0,
+            SeriesEntryNo: payload.SeriesEntryNo || "",
+            Status: payload.Status,
+            NextStatus: payload.Status,
+            StatusCategory: payload.Status,
+            Remark: payload.Remark || "",
+            TrnStatus: "A",
+            TrnStatusDtl: "A",
+            StatusModifiedDtl: new Date().toISOString(),
+            Employee: payload.Employee || "Administrator",
+            UserName: payload.UserName || "admin",
+            CreatedBy: payload.CreatedBy || "admin",
+            CustomerType: "R",
+            Mobile: "",
+            Phone: "",
+            Email: "",
+            EmailCC: "",
+            UploadEInvoice: false,
+            AllowPrint: false,
+          },
+        ],
+      },
+    ];
+
+    const response = await axios.post(
+      `${SWIL_API_BASE_URL}/api/Report/OrderFullfillment/UpdateTrnStatus`,
+      swilERPPayload,
+      {
+        headers: {
+          ...headers,
+          "Content-Type": "application/json",
+        },
+        params: {
+          EmployeeID: employeeId || 0,
+          IsFromStatus: true,
+        },
+      }
+    );
+
+    if (!response.data) {
+      throw new Error("No response received from SwilERP");
+    }
+    return response.data;
+  } catch (error) {
+    console.error(
+      "SwilERP Update Error Details:",
+      error.response?.data || error.message
+    );
+    throw new InternalServerError(
+      `SwilERP Status Update Error: ${error.message}`
+    );
+  }
+};
+
+const updateOrderStatus = async (
+  orderId,
+  newStatus,
+  remarks = "",
+  employeeId = 0
+) => {
+  try {
+    // First, fetch the order
+    const order = await Order.findOne({ swilOrderId: parseInt(orderId) });
+    if (!order) {
+      throw new ValidationError("Order not found");
+    }
+
+    const swilERPPayload = {
+      PKID: order.swilOrderId,
+      FKSeriesID: order.swilSeriesId,
+      Series: order.series || "",
+      EntryNo: order.entryNo || 0,
+      SeriesEntryNo: order.seriesEntryNo || "",
+      Status: newStatus,
+      NextStatus: newStatus,
+      StatusCategory: newStatus,
+      Remark: remarks,
+      Employee: employeeId.toString(),
+      UserName: "admin",
+      CreatedBy: "admin",
+    };
+
+    // Update status in SwilERP
+    const swilERPResponse = await updateSwilERPStatus(
+      swilERPPayload,
+      employeeId
+    );
+
+    if (swilERPResponse.Status === "error") {
+      throw new Error(swilERPResponse.Message || "SwilERP update failed");
+    }
+
+    // Update local database
+    const timestamp = new Date();
+    const updatedOrder = await Order.findOneAndUpdate(
+      { swilOrderId: parseInt(orderId) },
+      {
+        $set: {
+          orderStatus: newStatus,
+          "swilERPStatusDetails.currentStatus": newStatus,
+          "swilERPStatusDetails.lastModified": timestamp,
+          "swilERPStatusDetails.remarks": remarks,
+          "swilERPStatusDetails.employee": employeeId.toString(),
+        },
+        $push: {
+          orderStatusHistory: {
+            status: newStatus,
+            timestamp: timestamp,
+          },
+        },
+      },
+      { new: true }
+    );
+
+    return {
+      order: updatedOrder,
+      swilERPResponse,
+    };
+  } catch (error) {
+    console.error("Order Status Update Error:", error);
+    throw new InternalServerError(
+      `Failed to update order status: ${error.message}`
+    );
+  }
+};
+
 module.exports = {
   createOrder,
   getAllOrders,
-  getOrderById
+  getOrderById,
+  updateOrderStatus
 };

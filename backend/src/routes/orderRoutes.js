@@ -1,4 +1,5 @@
 const express = require("express");
+const { body } = require("express-validator"); 
 const orderController = require("../controllers/orderController");
 const authMiddleware = require("../middleware/authMiddleware");
 const { logActivity } = require("../loggers/appLogger");
@@ -31,5 +32,28 @@ router.get(
   logActivity,
   orderController.getOrderById
 )
+
+router.put(
+  "/orders/:orderId/status",
+  authMiddleware.authenticate,
+  [
+    body("status")
+      .isString()
+      .isIn([
+        "PENDING",
+        "CONFIRMED",
+        "PROCESSING",
+        "SHIPPED",
+        "DELIVERED",
+        "CANCELLED",
+      ])
+      .withMessage("Invalid status value"), 
+    body("remarks").optional().isString(),
+    body("employeeId").optional().isNumeric(),
+  ],
+  handleValidationErrors,
+  logActivity,
+  orderController.updateOrderStatus
+);
 
 module.exports = router;

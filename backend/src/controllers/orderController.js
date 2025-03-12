@@ -46,8 +46,27 @@ const getOrderById = async (req, res) => {
   }
 }
 
+const updateOrderStatus = async (req, res) => {
+  try{
+    const {orderId} = req.params;
+    const {status, remarks, employeeId} = req.body;
+
+    const result = await orderService.updateOrderStatus(
+      orderId,
+      status,
+      remarks,
+      employeeId || 0
+    );
+
+    sendResponse(res, 200, "Order status updated successfully", result);
+  } catch(error){
+    handleControllerError(error, req, res, appLogger);
+  }
+}
+
 module.exports = {
   createOrder,
   getAllOrders,
-  getOrderById
+  getOrderById,
+  updateOrderStatus
 };
