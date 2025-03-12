@@ -6,6 +6,7 @@ const rateLimit = require("express-rate-limit");
 const authRoutes = require("./routes/authRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+const customerRoutes = require("./routes/customerRoutes");
 const { mongoURI } = require("./config/config");
 
 const app = express();
@@ -26,6 +27,7 @@ app.use(limiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/order", orderRoutes);
+app.use("/api/customer", customerRoutes);
 
 
 // Database Connection

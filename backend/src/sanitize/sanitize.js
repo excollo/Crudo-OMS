@@ -168,6 +168,134 @@ const orderSanitization = [
     .withMessage("SwilERP Series ID must be an integer"),
 ];
 
+const customerSanitization = [
+  body("Alias")
+    .trim()
+    .escape()
+    .isLength({ min: 2 })
+    .withMessage("Alias must be at least 2 characters long")
+    .notEmpty()
+    .withMessage("Alias is required"),
+
+  body("Customer")
+    .trim()
+    .escape()
+    .isLength({ min: 3 })
+    .withMessage("Name must be at least 3 characters long")
+    .notEmpty()
+    .withMessage("Name is required"),
+
+  body("Email")
+    .trim()
+    .normalizeEmail()
+    .isEmail()
+    .withMessage("Invalid email format")
+    .notEmpty()
+    .withMessage("Email is required"),
+
+  body("Mobile")
+    .trim()
+    .escape()
+    .isLength({ min: 10, max: 15 })
+    .withMessage("Mobile number must be between 10 and 15 characters")
+    .matches(/^[0-9]+$/)
+    .withMessage("Mobile number must contain only digits")
+    .notEmpty()
+    .withMessage("Mobile number is required"),
+
+  body("Address").trim().escape().notEmpty().withMessage("Address is required"),
+
+  body("Pincode")
+    .trim()
+    .escape()
+    .matches(/^[0-9]{6}$/)
+    .withMessage("Invalid pincode format")
+    .notEmpty()
+    .withMessage("Pincode is required"),
+
+  body("Gstno")
+    .optional()
+    .trim()
+    .escape()
+    .matches(/^[0-9A-Z]{15}$/)
+    .withMessage("Invalid GST number format"),
+
+  body("PanNo")
+    .optional()
+    .trim()
+    .escape()
+    .matches(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/)
+    .withMessage("Invalid PAN number format"),
+
+  body("Station").optional().trim().escape(),
+
+  body("Druglicence").optional().trim().escape(),
+];
+
+const customerUpdateSanitization = [
+  param("id").isInt().withMessage("Invalid customer ID format"),
+
+  // Fix Customer validation
+  body("Customer")
+    .notEmpty()
+    .trim()
+    .escape()
+    .isLength({ min: 3 })
+    .withMessage(
+      "Customer name is required and must be at least 3 characters long"
+    ),
+
+  // Fix Alias validation - added isLength check
+  body("Alias")
+    .optional()
+    .trim()
+    .escape()
+    .isLength({ min: 1 })
+    .withMessage("If provided, alias cannot be empty"),
+
+  // Other optional fields
+  body("Address").optional().trim().escape(),
+
+  body("Druglicence").optional().trim().escape(),
+
+  body("Email")
+    .optional()
+    .trim()
+    .normalizeEmail()
+    .isEmail()
+    .withMessage("Invalid email format"),
+
+  body("Gstno")
+    .optional()
+    .trim()
+    .escape()
+    .matches(/^[0-9A-Z]{15}$/)
+    .withMessage("Invalid GST number format"),
+
+  body("Mobile")
+    .optional()
+    .trim()
+    .escape()
+    .matches(/^[0-9]{10}$/)
+    .withMessage("Invalid mobile number format"),
+
+  body("PanNo")
+    .optional()
+    .trim()
+    .escape()
+    .matches(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/)
+    .withMessage("Invalid PAN number format"),
+
+  body("Pincode")
+    .optional()
+    .trim()
+    .escape()
+    .matches(/^[0-9]{6}$/)
+    .withMessage("Invalid pincode format"),
+
+  body("Station").optional().trim().escape(),
+];
+
 module.exports = {
   sanitizeMiddleware,
   emailSanitization,
@@ -177,5 +305,7 @@ module.exports = {
   paginationSanitization,
   handleValidationErrors,
   combineSanitization,
-  orderSanitization
+  orderSanitization,
+  customerSanitization,
+  customerUpdateSanitization
 };
