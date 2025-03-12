@@ -77,38 +77,26 @@ const AuthService = {
 
   // Login user
   // Update the login function in AuthService.js
+  // Login user
   login: async (credentials) => {
     try {
       const response = await API.post("/auth/signin", credentials);
-      console.log("Raw API Response:", response.data);
+      const { data } = response.data;
 
-      // Extract data from nested structure
-      const { data, message } = response.data;
+      if (data?.authType === "2fa") {
+        // Return 2FA required response with the temporary token
+        console.log("2FA required, tempToken:", data.tempToken);
 
-      // Check if user has 2FA enabled
-      if (
-        data?.user?.twoFactorMethod &&
-        data?.user?.twoFactorMethod !== "disabled"
-      ) {
-        // Return early with 2FA required flag and temporary token
         return {
           requiresTwoFactor: true,
           email: credentials.email,
-          userId: data.user._id,
-          tempToken: data.tempToken, // Make sure your backend returns this
+          userId: data.userId,
+          tempToken: data.tempToken,
         };
       }
 
-      // If 2FA is not enabled, proceed with normal login
-      if (!data?.tokens?.accessToken) {
-        console.error("Invalid response structure:", data);
-        throw new Error("Authentication failed: No access token received");
-      }
-
-      // Extract user and tokens
+      // Regular login success
       const { user, tokens } = data;
-
-      // Store auth data
       localStorage.setItem("accessToken", tokens.accessToken);
       localStorage.setItem("refreshToken", tokens.refreshToken);
       localStorage.setItem("user", JSON.stringify(user));
@@ -120,19 +108,27 @@ const AuthService = {
         success: true,
       };
     } catch (error) {
-      console.error("Login API Error:", error);
-      throw error.response?.data?.message || error.message || "Login failed";
+      console.error("Login error:", error);
+      throw error.response?.data?.message || "Login failed";
     }
   },
   // Verify 2FA token
- 
-  verifyTwoFactor: async (email, token, tempToken) => {
+
+  verifyTwoFactor: async (email, otp, tempToken) => {
     try {
+      console.log("AuthService.verifyTwoFactor called with:", {
+        email,
+        otp,
+        tempToken,
+      });
+
       const response = await API.post("/auth/verify-2fa", {
         email,
-        token,
-        tempToken, // Include the temporary token from login
+        token: otp, // Send the OTP as "token" to the API
+        tempToken, // Include the temporary token
       });
+
+      console.log("Verification API response:", response.data);
 
       const { user, accessToken, refreshToken } = response.data;
 
@@ -141,12 +137,13 @@ const AuthService = {
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("user", JSON.stringify(user));
 
-      return { user, accessToken };
+      return { user, accessToken, refreshToken };
     } catch (error) {
-      throw error.response?.data || error;
+      console.error("Error in verifyTwoFactor:", error);
+      console.error("Error response:", error.response?.data);
+      throw error.response?.data?.message || "Verification failed";
     }
   },
-
   // Enable 2FA
   enableTwoFactor: async () => {
     try {

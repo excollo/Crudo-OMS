@@ -2,38 +2,65 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Container,
-  TextField,
   Button,
   Typography,
   Grid,
   CircularProgress,
   InputBase,
+  Alert,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  verifyTwoFactor,
+  clearTwoFactorState,
+} from "../../redux/slices/authSlice";
 import { RightSection } from "../../components/Auth-Component/LoginComponent";
 import { Logo } from "../../components/Logo-component/Logo";
 
 const OTPVerificationPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [otp, setOtp] = useState(["", "", "", ""]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const inputRefs = [useRef(), useRef(), useRef(), useRef()];
+  const dispatch = useDispatch();
 
-  // Parse email from URL or location state
+  const { loading, error, tempEmail, tempToken } = useSelector(
+    (state) => state.auth
+  );
+
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]); // Updated to 6 digits
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localError, setLocalError] = useState("");
+  const [token, setToken] = useState(""); // Added state for token
+  // Create refs for each input
+  const inputRefs = Array(6)
+    .fill()
+    .map(() => useRef(null));
+
+  // Parse email from URL, location state, or Redux state
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const emailParam = queryParams.get("email");
 
     if (emailParam) {
       setEmail(emailParam);
-    } else if (location.state && location.state.email) {
+    } else if (location.state?.email) {
       setEmail(location.state.email);
+    } else if (tempEmail) {
+      setEmail(tempEmail);
+    } else {
+      // No email found, redirect to login
+      navigate("/signin", { replace: true });
     }
-  }, [location]);
+
+    // Set token from location state or Redux state
+    const tokenFromState = location.state?.tempToken || tempToken;
+    if (tokenFromState) {
+      setToken(tokenFromState);
+    } else {
+      console.error("No token found in location state or Redux state");
+    }
+  }, [location, tempEmail,tempToken, navigate]);
 
   // Handle OTP input change
   const handleOtpChange = (index, value) => {
@@ -42,8 +69,8 @@ const OTPVerificationPage = () => {
       newOtp[index] = value;
       setOtp(newOtp);
 
-      if (value !== "" && index < 5) {
-        // Changed to 5 for 6 digits
+      // If a digit is entered and there's a next input, focus it
+      if (value !== "" && index < otp.length - 1) {
         inputRefs[index + 1].current.focus();
       }
     }
@@ -51,60 +78,70 @@ const OTPVerificationPage = () => {
 
   // Handle backspace key
   const handleKeyDown = (index, e) => {
-    if (e.key === "Backspace" && otp[index] === "" && index > 0) {
-      inputRefs[index - 1].current.focus();
+    if (e.key === "Backspace") {
+      if (otp[index] === "" && index > 0) {
+        // If current input is empty and backspace is pressed, focus previous input
+        inputRefs[index - 1].current.focus();
+      } else if (otp[index] !== "") {
+        // If current input has a value, clear it but don't move focus
+        const newOtp = [...otp];
+        newOtp[index] = "";
+        setOtp(newOtp);
+      }
     }
   };
 
   // Handle OTP verification
-const handleVerify = async (e) => {
-  e.preventDefault();
-  const otpValue = otp.join("");
+ const handleVerify = async (e) => {
+   e.preventDefault();
+   const otpValue = otp.join("");
 
-  if (otpValue.length !== 6) {
-    // Changed to 6
-    setError("Please enter a valid 6-digit code");
-    return;
-  }
+   if (otpValue.length !== 6) {
+     setLocalError("Please enter a valid 6-digit code");
+     return;
+   }
 
-  setIsSubmitting(true);
+   setIsSubmitting(true);
+   setLocalError("");
 
-  try {
-    const result = await dispatch(
-      verifyTwoFactor({
-        email,
-        otp: otpValue,
-        tempToken: location.state?.tempToken,
-      })
-    ).unwrap();
-
-    if (result.accessToken) {
-      localStorage.setItem("accessToken", result.accessToken);
-      if (result.refreshToken) {
-        localStorage.setItem("refreshToken", result.refreshToken);
-      }
-      localStorage.setItem("user", JSON.stringify(result.user));
-      navigate("/dashboard", { replace: true });
-    }
-  } catch (err) {
-    setError(err.message || "Invalid verification code");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
- // Add resend OTP functionality
- const handleResend = async () => {
-   setLoading(true);
    try {
-     await dispatch(requestPasswordReset(email));
-     setOtp(["", "", "", ""]);
-     inputRefs[0].current.focus();
+     // Get tempToken from Redux state or location state
+     const currentTempToken = tempToken || location.state?.tempToken;
+
+     if (!currentTempToken) {
+       console.warn("No temp token found, proceeding with verification anyway");
+     }
+
+     console.log("Using tempToken:", currentTempToken);
+     console.log("Using OTP:", otpValue);
+
+     const result = await dispatch(
+       verifyTwoFactor({
+         email,
+         otp: otpValue,
+         tempToken: currentTempToken,
+       })
+     ).unwrap();
+
+     console.log("Verification result:", result);
+
+     // Success, redirect to dashboard
+     navigate("/dashboard", { replace: true });
    } catch (err) {
-     setError("Failed to resend code. Please try again.");
+     console.error("Verification error:", err);
+     setLocalError(typeof err === "string" ? err : "Invalid verification code");
    } finally {
-     setLoading(false);
+     setIsSubmitting(false);
    }
  };
+
+  // Handle resend OTP
+  const handleResend = async () => {
+    // Implement resend logic here
+    // For now, just reset the OTP fields
+    setOtp(Array(6).fill(""));
+    inputRefs[0].current.focus();
+  };
 
   return (
     <Container
@@ -126,8 +163,7 @@ const handleVerify = async (e) => {
           md={6}
           sx={{
             display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
+            flexDirection: "column",
             p: 2,
           }}
         >
@@ -152,7 +188,7 @@ const handleVerify = async (e) => {
               component="h1"
               sx={{ fontWeight: "700", mb: 2, textAlign: "center" }}
             >
-              Verify OTP
+              Two-Factor Authentication
             </Typography>
 
             <Typography
@@ -202,14 +238,10 @@ const handleVerify = async (e) => {
               ))}
             </Box>
 
-            {error && (
-              <Typography
-                variant="body1"
-                color="error"
-                sx={{ fontWeight: "600", mb: 2 }}
-              >
-                {error}
-              </Typography>
+            {(localError || error) && (
+              <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
+                {localError || error}
+              </Alert>
             )}
 
             <Typography
@@ -261,10 +293,13 @@ const handleVerify = async (e) => {
 
             <Button
               variant="text"
-              onClick={() => navigate("/login")}
+              onClick={() => {
+                dispatch(clearTwoFactorState());
+                navigate("/login");
+              }}
               sx={{ fontWeight: "600", color: "#666", textTransform: "none" }}
             >
-              <Typography variant="body1">Go back</Typography>
+              <Typography variant="body1">Back to Login</Typography>
             </Button>
           </Box>
         </Grid>

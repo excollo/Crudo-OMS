@@ -1,42 +1,43 @@
-import { jwtDecode } from "jwt-decode"; // Changed to named import
+import { jwtDecode } from "jwt-decode";
 
-const isValidToken = (token) => {
+export const isValidToken = (token) => {
   if (!token) return false;
 
   try {
-    const decoded = jwtDecode(token); // Use jwtDecode instead of jwt_decode
-    const currentTime = Date.now() / 1000;
-
-    if (decoded.exp < currentTime) {
-      localStorage.removeItem("token");
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    localStorage.removeItem("token");
+    const decoded = jwtDecode(token);
+    return decoded.exp > Date.now() / 1000;
+  } catch {
     return false;
   }
 };
 
-const setAuthToken = (token) => {
+export const setAuthToken = (token) => {
   if (token && isValidToken(token)) {
-    localStorage.setItem("token", token);
+    localStorage.setItem("accessToken", token);
     return true;
   }
   return false;
 };
 
-const getAuthToken = () => localStorage.getItem("token");
+export const getAuthToken = () => localStorage.getItem("accessToken");
 
-const removeAuthToken = () => localStorage.removeItem("token");
+export const removeAuthTokens = () => {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("user");
+};
+
+export const getAuthHeader = () => {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 const AuthUtils = {
   isValidToken,
   setAuthToken,
   getAuthToken,
-  removeAuthToken,
+  removeAuthTokens,
+  getAuthHeader,
 };
 
-export { isValidToken, setAuthToken, getAuthToken, removeAuthToken };
 export default AuthUtils;

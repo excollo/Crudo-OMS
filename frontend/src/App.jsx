@@ -16,9 +16,9 @@ import Profile from "./pages/Homepage/ProfilePage.jsx/Profile";
 import ProtectedRoute from "./pages/Homepage/ProtectedRoute";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import SidebarLayout from "./pages/Homepage/SidebarLayout";
+import SettingsPage from "./pages/Settings/SettingsPage";
 
 function App() {
-  const isAuthenticated = localStorage.getItem("token") !== null; // Check if user is logged in
 
   return (
     <>
@@ -30,7 +30,6 @@ function App() {
         /> */}
         <Route path="/signin" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
-
         <Route path="/login-with-phone" element={<PhoneLoginPageComponent />} />
         <Route path="/reset-password/:token" element={<NewPasswordPage />} />
         <Route path="/reset-password" element={<ForgotPasswordPage />} />
@@ -38,11 +37,10 @@ function App() {
           path="/password-recovery-confirmation/reset-password/:token"
           element={<NewPasswordPage />}
         />
-
         <Route path="/verify-otp" element={<OTPVerificationPage />} />
-
         {/* Protected routes - require authentication */}
         <Route path="/" element={<ProtectedRoute />}>
+          {" "}
           <Route element={<Layout />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
@@ -53,11 +51,16 @@ function App() {
           </Route>
           <Route element={<SidebarLayout />}>
             <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            {/* <Route
+              path="/settings/security"
+              element={<SecuritySettingsPage />}
+            /> */}
           </Route>
         </Route>
         {/* Catch-all Route */}
         {/* 404 Route */}
-        <Route path="*" element={<Navigate to="/signin" />} />
+        <Route path="*" element={<Navigate to="/signin" replace />} />
       </Routes>
     </>
   );
