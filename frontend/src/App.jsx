@@ -17,6 +17,7 @@ import ProtectedRoute from "./pages/Homepage/ProtectedRoute";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import SidebarLayout from "./pages/Homepage/SidebarLayout";
 import SettingsPage from "./pages/Settings/SettingsPage";
+import TrackOrderPage from "./pages/Orders/TrackOrderPage";
 
 function App() {
 
@@ -45,6 +46,7 @@ function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/create-order" element={<CreateOrderPage />} />
+            <Route path="/track-order" element={<TrackOrderPage />} />
             <Route path="/create-customer" element={<CreateCustomerPage />} />
             <Route path="/notifications" element={<NotificationPage />} />
             {/* Add other protected routes with Layout here */}
