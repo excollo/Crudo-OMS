@@ -296,6 +296,71 @@ const customerUpdateSanitization = [
   body("Station").optional().trim().escape(),
 ];
 
+const pdfGenerationSanitization = [
+  // Order validation
+  body("swilOrderId")
+    .notEmpty()
+    .withMessage("Order ID is required")
+    .trim()
+    .escape(),
+
+  // Customer validations
+  body("customer.customerId")
+    .notEmpty()
+    .withMessage("Customer ID is required")
+    .trim()
+    .escape(),
+  body("customer.name")
+    .notEmpty()
+    .withMessage("Customer name is required")
+    .trim()
+    .escape(),
+  body("customer.age")
+    .optional()
+    .isInt({ min: 0, max: 120 })
+    .withMessage("Age must be between 0 and 120"),
+  body("customer.sex")
+    .optional()
+    .isIn(["Male", "Female", "Other"])
+    .withMessage("Invalid gender value"),
+  body("customer.mobile")
+    .optional()
+    .matches(/^[0-9]{10}$/)
+    .withMessage("Invalid mobile number"),
+  body("customer.abhaNo")
+    .optional()
+    .matches(/^[0-9]{14}$/)
+    .withMessage("Invalid ABHA number"),
+  body("customer.address").optional().trim().escape(),
+
+  // Store validations
+  body("store.address").optional().trim().escape(),
+  body("store.mobile")
+    .optional()
+    .matches(/^[0-9]{10}$/)
+    .withMessage("Invalid store mobile number"),
+
+  // Products validation
+  body("products")
+    .isArray()
+    .withMessage("Products must be an array")
+    .notEmpty()
+    .withMessage("At least one product is required"),
+  body("products.*.name")
+    .notEmpty()
+    .withMessage("Product name is required")
+    .trim()
+    .escape(),
+  body("products.*.dosage").optional().trim().escape(),
+  body("products.*.frequency").optional().trim().escape(),
+  body("products.*.time").optional().trim().escape(),
+  body("products.*.duration").optional().trim().escape(),
+  body("products.*.price")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("Price must be a positive number"),
+];
+
 module.exports = {
   sanitizeMiddleware,
   emailSanitization,
@@ -307,5 +372,6 @@ module.exports = {
   combineSanitization,
   orderSanitization,
   customerSanitization,
-  customerUpdateSanitization
+  customerUpdateSanitization,
+  pdfGenerationSanitization,
 };

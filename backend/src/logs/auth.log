@@ -753,3 +753,17 @@
 {"endpoint":"/api/order/create-order","ip":"::1","level":"info","message":"Authentication Attempt","method":"POST","timestamp":"2025-03-12 17:46:47","userEmail":"N/A"}
 {"endpoint":"/api/order/create-order","ip":"::1","level":"info","message":"Authentication Attempt","method":"POST","timestamp":"2025-03-12 17:56:56","userEmail":"N/A"}
 {"endpoint":"/api/order/create-order","ip":"::1","level":"info","message":"Authentication Attempt","method":"POST","timestamp":"2025-03-12 18:19:32","userEmail":"N/A"}
+{"endpoint":"/api/auth/signup","ip":"::1","level":"info","message":"Authentication Attempt","method":"POST","timestamp":"2025-03-13 10:36:45","userEmail":"skjhfskjdfhskdj@gmail.com"}
+{"level":"info","message":"User signed up: skjhfskjdfhskdj@gmail.com","timestamp":"2025-03-13 10:36:46"}
+{"endpoint":"/api/auth/signin","ip":"::1","level":"info","message":"Authentication Attempt","method":"POST","timestamp":"2025-03-13 10:36:54","userEmail":"skjhfskjdfhskdj@gmail.com"}
+{"level":"info","message":"User logged in: skjhfskjdfhskdj@gmail.com","timestamp":"2025-03-13 10:36:54"}
+{"endpoint":"/api/customer/customers","ip":"::1","level":"info","message":"Authentication Attempt","method":"GET","timestamp":"2025-03-13 10:40:49","userEmail":"skjhfskjdfhskdj@gmail.com"}
+{"body":{"email":"skjhfskjdfhskdj@gmail.com","password":"sldjhfskjd"},"level":"warn","message":"Unauthorized: Invalid token","method":"GET","params":{},"path":"/customers","stack":"UnauthorizedError: Invalid token\n    at handleAxiosError (/Users/yash/Desktop/Excollo-Projects/Crudo-OMS/backend/src/services/customerService.js:108:11)\n    at Object.fetchCustomerList (/Users/yash/Desktop/Excollo-Projects/Crudo-OMS/backend/src/services/customerService.js:26:5)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async getCustomerList (/Users/yash/Desktop/Excollo-Projects/Crudo-OMS/backend/src/controllers/customerController.js:9:23)","timestamp":"2025-03-13 10:40:49"}
+{"endpoint":"/api/customer/customers","ip":"::1","level":"info","message":"Authentication Attempt","method":"GET","timestamp":"2025-03-13 10:40:58","userEmail":"skjhfskjdfhskdj@gmail.com"}
+{"endpoint":"/api/customer/customers","ip":"::1","level":"info","message":"Authentication Attempt","method":"GET","timestamp":"2025-03-13 10:42:39","userEmail":"skjhfskjdfhskdj@gmail.com"}
+{"endpoint":"/api/customer/customers","ip":"::1","level":"info","message":"Authentication Attempt","method":"GET","timestamp":"2025-03-13 10:42:55","userEmail":"skjhfskjdfhskdj@gmail.com"}
+{"endpoint":"/api/customer/customers","ip":"::1","level":"info","message":"Authentication Attempt","method":"GET","timestamp":"2025-03-13 11:07:30","userEmail":"skjhfskjdfhskdj@gmail.com"}
+{"endpoint":"/api/order/create-order","ip":"::1","level":"info","message":"Authentication Attempt","method":"POST","timestamp":"2025-03-13 11:09:10","userEmail":"N/A"}
+{"endpoint":"/api/order/create-order","ip":"::1","level":"info","message":"Authentication Attempt","method":"POST","timestamp":"2025-03-13 11:12:43","userEmail":"N/A"}
+{"endpoint":"/api/order/create-order","ip":"::1","level":"info","message":"Authentication Attempt","method":"POST","timestamp":"2025-03-13 11:13:07","userEmail":"N/A"}
+{"endpoint":"/api/customer/customers","ip":"::1","level":"info","message":"Authentication Attempt","method":"GET","timestamp":"2025-03-13 11:17:44","userEmail":"N/A"}
