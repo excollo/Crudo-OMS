@@ -60,7 +60,7 @@ const OTPVerificationPage = () => {
     } else {
       console.error("No token found in location state or Redux state");
     }
-  }, [location, tempEmail,tempToken, navigate]);
+  }, [location, tempEmail, tempToken, navigate]);
 
   // Handle OTP input change
   const handleOtpChange = (index, value) => {
@@ -92,48 +92,42 @@ const OTPVerificationPage = () => {
   };
 
   // Handle OTP verification
- const handleVerify = async (e) => {
-   e.preventDefault();
-   const otpValue = otp.join("");
+  // In OTPVerificationPage.jsx, update the handleVerify function
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    const otpValue = otp.join("");
 
-   if (otpValue.length !== 6) {
-     setLocalError("Please enter a valid 6-digit code");
-     return;
-   }
+    if (otpValue.length !== 6) {
+      setLocalError("Please enter a valid 6-digit code");
+      return;
+    }
 
-   setIsSubmitting(true);
-   setLocalError("");
+    setIsSubmitting(true);
+    setLocalError("");
 
-   try {
-     // Get tempToken from Redux state or location state
-     const currentTempToken = tempToken || location.state?.tempToken;
+    try {
+      // console.log("Using OTP:", otpValue);
 
-     if (!currentTempToken) {
-       console.warn("No temp token found, proceeding with verification anyway");
-     }
+      const result = await dispatch(
+        verifyTwoFactor({
+          email,
+          otp: otpValue,
+        })
+      ).unwrap();
 
-     console.log("Using tempToken:", currentTempToken);
-     console.log("Using OTP:", otpValue);
+      // console.log("Verification result:", result);
 
-     const result = await dispatch(
-       verifyTwoFactor({
-         email,
-         otp: otpValue,
-         tempToken: currentTempToken,
-       })
-     ).unwrap();
-
-     console.log("Verification result:", result);
-
-     // Success, redirect to dashboard
-     navigate("/dashboard", { replace: true });
-   } catch (err) {
-     console.error("Verification error:", err);
-     setLocalError(typeof err === "string" ? err : "Invalid verification code");
-   } finally {
-     setIsSubmitting(false);
-   }
- };
+      // Success, redirect to dashboard
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      console.error("Verification error:", err);
+      setLocalError(
+        typeof err === "string" ? err : "Invalid verification code"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Handle resend OTP
   const handleResend = async () => {

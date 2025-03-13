@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   Box,
   Typography,
-
   IconButton,
   Badge,
   Button,
@@ -14,22 +13,17 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { styled, alpha, useTheme } from "@mui/material/styles";
-
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import CloseIcon from "@mui/icons-material/Close";
 import { Link } from "react-router-dom";
 import SearchComponent from "./SearchComponent";
-
-
-
 const StyledButton = styled(Button)(({ theme }) => ({
   borderRadius: "10px",
-//  width:"20%",
+  //  width:"20%",
   fontWeight: "600",
   fontFamily: '"Inter", sans-serif',
   padding: "6px 12px",
 }));
-
 const TopNavbar = ({ title, onSearch, buttontext, buttontext2 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -54,16 +48,12 @@ const TopNavbar = ({ title, onSearch, buttontext, buttontext2 }) => {
       read: true,
     },
   ]);
-
   const unreadNotifications = notifications.filter((n) => !n.read).length;
-
- const handleSearchChange = (e) => {
+  const handleSearchChange = (e) => {
     if (onSearch) {
       onSearch(e.target.value);
     }
   };
-  
-
   const toggleNotificationDrawer = () => {
     setNotificationDrawerOpen(!notificationDrawerOpen);
     if (!notificationDrawerOpen) {
@@ -71,7 +61,6 @@ const TopNavbar = ({ title, onSearch, buttontext, buttontext2 }) => {
       setNotifications(notifications.map((n) => ({ ...n, read: true })));
     }
   };
-
   return (
     <>
       <Box
@@ -80,7 +69,7 @@ const TopNavbar = ({ title, onSearch, buttontext, buttontext2 }) => {
           alignItems: "center",
           justifyContent: "space-between",
           fontFamily: "'Inter', sans-serif",
-          p: "3% 0",
+          // p: "3% 0",
           borderBottom: "5px solid",
           borderColor: "rgba(0, 0, 0, 0.06)",
           backgroundColor: "#FFFFFF",
@@ -88,9 +77,9 @@ const TopNavbar = ({ title, onSearch, buttontext, buttontext2 }) => {
           top: 0,
           left: 0,
           width: "100%",
-          height: "64px", // Fixed navbar height
+          // height: "5%", // Fixed navbar height
           zIndex: 900,
-        //   ml: 10,
+          //   ml: 10,
         }}
       >
         {/* Left side - Logo or Brand */}
@@ -108,27 +97,25 @@ const TopNavbar = ({ title, onSearch, buttontext, buttontext2 }) => {
               fontWeight: 700,
               fontFamily: '"Inter", sans-serif',
               fontSize: { xs: "1.1rem", sm: "1.25rem" },
-              ml:15
+              // ml: 15,
             }}
           >
             {title}
           </Typography>
         </Box>
-
         {/* Right side - Search, Buttons, Notifications */}
         <Box
           sx={{
             display: "flex",
-            mr:3,
+            mr: 3,
             // justifySelf:"flex-end",
             width: "60%",
             justifyContent: "end",
             alignItems: "center",
-            gap: { xs: 1, sm: 1,lg:3 },
+            gap: { xs: 1, sm: 1, lg: 3 },
           }}
         >
-            <SearchComponent handleSearchChange={handleSearchChange}/>
-
+          <SearchComponent handleSearchChange={handleSearchChange} />
           {/* Track Orders Button */}
           <StyledButton
             variant="outlined"
@@ -139,7 +126,7 @@ const TopNavbar = ({ title, onSearch, buttontext, buttontext2 }) => {
                 "linear-gradient(99.09deg, #FFB8B8 2.64%, #A0616A 100%)",
               color: "#fff",
               fontSize: "0.875rem",
-              backgroundColor: "#f5f5f5",
+              backgroundColor: "#F5F5F5",
               "&:hover": {
                 border: "none",
                 borderColor:
@@ -149,7 +136,6 @@ const TopNavbar = ({ title, onSearch, buttontext, buttontext2 }) => {
           >
             {buttontext2}
           </StyledButton>
-
           {/* Create Customer Button */}
           <Link
             to="/create-customer"
@@ -169,10 +155,9 @@ const TopNavbar = ({ title, onSearch, buttontext, buttontext2 }) => {
               {buttontext}
             </Typography>
           </Link>
-
           {/* Notifications Icon */}
           <IconButton
-          href="/notifications"
+            href="/notifications"
             aria-label="notifications"
             onClick={toggleNotificationDrawer}
             sx={{ color: "#424242" }}
@@ -183,7 +168,6 @@ const TopNavbar = ({ title, onSearch, buttontext, buttontext2 }) => {
           </IconButton>
         </Box>
       </Box>
-
       {/* Notification Drawer */}
       <Drawer
         anchor="right"
@@ -213,7 +197,6 @@ const TopNavbar = ({ title, onSearch, buttontext, buttontext2 }) => {
           </IconButton>
         </Box>
         <Divider />
-
         <List>
           {notifications.map((notification) => (
             <React.Fragment key={notification.id}>
@@ -246,5 +229,4 @@ const TopNavbar = ({ title, onSearch, buttontext, buttontext2 }) => {
     </>
   );
 };
-
 export default TopNavbar;

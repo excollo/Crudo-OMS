@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import {
   Box,
   List,
@@ -7,6 +8,8 @@ import {
   ListItemIcon,
   ListItemText,
   Avatar,
+  useTheme,
+  useMediaQuery,
   Divider,
   IconButton,
 } from "@mui/material";
@@ -22,35 +25,73 @@ import {
   X as CloseIcon,
 } from "lucide-react";
 import { Logo } from "../../Logo-component/Logo";
- import { useNavigate } from "react-router-dom";
-
+import { useNavigate } from "react-router-dom";
 const Sidebar = () => {
- const navigate = useNavigate();
-  // State to track the currently selected menu item based on the current URL path
+  const navigate = useNavigate();
   const [selected, setSelected] = useState(window.location.pathname);
-
-  // State to control sidebar visibility on mobile
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-
+  // Get theme to use breakpoints
+  const theme = useTheme();
+  // Media queries for responsive design
+  const isXsScreen = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMdScreen = useMediaQuery(theme.breakpoints.between("md", "lg"));
+  const isLgScreen = useMediaQuery(theme.breakpoints.up("lg"));
+  // Calculate icon size based on screen size
+  const [iconSize, setIconSize] = useState(24);
+  // Update icon size based on screen dimensions and aspect ratio
+  useEffect(() => {
+    const updateIconSize = () => {
+      const aspectRatio = window.innerWidth / window.innerHeight;
+      if (isXsScreen) {
+        // Smaller screens get smaller icons
+        setIconSize(Math.min(20, Math.floor(20 * aspectRatio)));
+      } else if (isMdScreen) {
+        // Medium screens
+        setIconSize(Math.min(24, Math.floor(24 * aspectRatio)));
+      } else if (isLgScreen) {
+        // Larger screens can have bigger icons
+        setIconSize(Math.min(28, Math.floor(26 * aspectRatio)));
+      } else {
+        // Default size
+        setIconSize(24);
+      }
+    };
+    // Initial calculation
+    updateIconSize();
+    // Add event listener for window resize
+    window.addEventListener("resize", updateIconSize);
+    // Cleanup
+    return () => window.removeEventListener("resize", updateIconSize);
+  }, [isXsScreen, isMdScreen, isLgScreen]);
   // Define the list of menu items with their icons, labels, and paths
   const menuItems = [
-    { icon: <Home size={24} />, label: "Dashboard", path: "/dashboard" },
-    { icon: <BarChart2 size={24} />, label: "Analytics", path: "/analytics" },
+    { icon: <Home size={iconSize} />, label: "Dashboard", path: "/dashboard" },
     {
-      icon: <FileText size={24} />,
+      icon: <BarChart2 size={iconSize} />,
+      label: "Analytics",
+      path: "/analytics",
+    },
+    {
+      icon: <FileText size={iconSize} />,
       label: "Prescription Management",
       path: "/prescriptions",
     },
     {
-      icon: <ShoppingCart size={24} />,
+      icon: <ShoppingCart size={iconSize} />,
       label: "Order Management",
       path: "/create-order",
     },
-    { icon: <ClipboardList size={24} />, label: "Audit Log", path: "/audit" },
-    { icon: <Settings size={24} />, label: "Settings", path: "/settings" },
+    {
+      icon: <ClipboardList size={iconSize} />,
+      label: "Audit Log",
+      path: "/audit",
+    },
+    {
+      icon: <Settings size={iconSize} />,
+      label: "Settings",
+      path: "/settings",
+    },
   ];
-
-  // Mobile menu toggle button
   const MobileMenuToggle = () => (
     <IconButton
       onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
@@ -68,12 +109,10 @@ const Sidebar = () => {
       {isMobileSidebarOpen ? <CloseIcon /> : <MenuIcon />}
     </IconButton>
   );
-
   return (
     <>
       {/* Mobile Menu Toggle Button */}
       <MobileMenuToggle />
-
       {/* Sidebar Container */}
       <Box
         sx={{
@@ -95,7 +134,7 @@ const Sidebar = () => {
             sm: 0, // Always visible on larger screens
           },
           zIndex: 1000,
-          overflow: "hidden",
+          overflowX: "scroll",
           transition: "left 0.3s ease-in-out", // Smooth transition
           boxShadow: {
             xs: isMobileSidebarOpen ? 3 : "none", // Add shadow when open on mobile
@@ -113,7 +152,6 @@ const Sidebar = () => {
         >
           <Logo />
         </Box>
-
         {/* Menu List */}
         <List
           sx={{
@@ -182,10 +220,8 @@ const Sidebar = () => {
             </ListItem>
           ))}
         </List>
-
         {/* Divider to separate menu and footer */}
         <Divider />
-
         {/* Footer Section with User Avatar */}
         <Box
           sx={{
@@ -207,5 +243,4 @@ const Sidebar = () => {
     </>
   );
 };
-
 export default Sidebar;

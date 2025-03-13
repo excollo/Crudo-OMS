@@ -49,9 +49,8 @@ const PrescriptionUpload = ({
       <Paper
         elevation={3}
         sx={{
-          ml: "13%",
+        
           p: 3,
-          width: "80%",
           borderRadius: "1%",
           boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.05)",
           boxShadow: "none",

@@ -144,19 +144,17 @@ setIsSuccessPopupOpen(true);
       <CssBaseline />
       <Box
         sx={{
-          mt: { xs: "12%", md: "8%" },
-          mx: { xs: "4%", md: "4%", lg: "2%", xl: "-1%" },
           display: "flex",
           flexDirection: { xs: "column", md: "row" },
           justifyContent: "center",
           alignItems: { xs: "stretch", md: "flex-start" },
-          gap: 2,
+          gap: "5%",
         }}
       >
         {/* Left side - Form */}
         <Box
           sx={{
-            width: { xs: "100%", md: "70%" },
+            width: { xs: "100%", md: "60%" },
             display: "flex",
             flexDirection: "column",
           }}
@@ -165,6 +163,7 @@ setIsSuccessPopupOpen(true);
             <CustomerDetailsForm
               formData={formData}
               handleChange={handleChange}
+              setFormData={setFormData} // Pass this to allow form to update all fields at once
             />
 
             <PrescriptionUpload
@@ -192,8 +191,7 @@ setIsSuccessPopupOpen(true);
             <Box
               sx={{
                 display: { xs: "block", md: "none" },
-                width: "113.5%",
-                ml: "13.5%",
+
                 mt: 2,
                 mb: 3,
               }}
@@ -205,8 +203,11 @@ setIsSuccessPopupOpen(true);
               />
             </Box>
 
-            <Box sx={{ width: "75vw", ml: "13%" }}>
-              <FormButtons handleCancel={handleCancel} handleSubmit={handleSubmit} />
+            <Box sx={{ width: "75vw" }}>
+              <FormButtons
+                handleCancel={handleCancel}
+                handleSubmit={handleSubmit}
+              />
             </Box>
           </form>
         </Box>

@@ -31,9 +31,8 @@ const DosageInstructions = ({ dosageInstructions, setDosageInstructions }) => {
       <Paper
         elevation={0}
         sx={{
-          ml: "13%",
+         
           p: 3,
-          width: "80%",
           border: "1px solid #eee",
           borderRadius: "8px",
         }}

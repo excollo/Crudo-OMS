@@ -13,6 +13,9 @@ API.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+    console.log("Added auth token to request:", config.url);
+  } else {
+    console.warn("No auth token found for request:", config.url);
   }
   return config;
 });
@@ -114,23 +117,22 @@ const AuthService = {
   },
   // Verify 2FA token
 
-  verifyTwoFactor: async (email, otp, tempToken) => {
+  verifyTwoFactor: async (email, otp) => {
     try {
       console.log("AuthService.verifyTwoFactor called with:", {
         email,
         otp,
-        tempToken,
       });
 
       const response = await API.post("/auth/verify-2fa", {
         email,
         token: otp, // Send the OTP as "token" to the API
-        tempToken, // Include the temporary token
       });
 
       console.log("Verification API response:", response.data);
 
-      const { user, accessToken, refreshToken } = response.data;
+      // Extract the data correctly from the nested structure
+      const { user, accessToken, refreshToken } = response.data.data;
 
       // Store tokens and user data
       localStorage.setItem("accessToken", accessToken);
@@ -155,14 +157,23 @@ const AuthService = {
   },
 
   // Verify 2FA setup
-  verifyTwoFactorSetup: async (email, token) => {
+  // Verify 2FA setup
+  verifyTwoFactorSetup: async (data) => {
     try {
-      const response = await API.post("/auth/verify-2fa-setup", {
-        email,
-        token,
-      });
+      // Log the data being sent for debugging
+      console.log("Sending 2FA setup verification data:", data);
+
+      const response = await API.post("/auth/verify-2fa-setup", data);
       return response.data;
     } catch (error) {
+      console.error("2FA setup verification error:", error);
+
+      // Enhanced error logging
+      if (error.response) {
+        console.error("Response status:", error.response.status);
+        console.error("Response data:", error.response.data);
+      }
+
       throw error.response?.data || error;
     }
   },

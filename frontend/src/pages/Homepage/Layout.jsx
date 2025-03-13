@@ -11,7 +11,9 @@ const authRoutes = [
   "/forgot-password",
   "/reset-password",
 ];
-
+// Add these constants for consistent spacing
+const NAVBAR_HEIGHT = "7%";
+const SIDEBAR_WIDTH = "7%";
 // Updated pageTitles with buttonText2
 const pageTitles = {
   "/dashboard": {
@@ -65,14 +67,10 @@ const pageTitles = {
     buttonText2: "Reset Defaults",
   },
 };
-
 const Layout = () => {
   const location = useLocation();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [pageTitle, setPageTitle] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
-
   // Update page title based on current route
   useEffect(() => {
     const path = location.pathname;
@@ -84,40 +82,64 @@ const Layout = () => {
     setPageTitle(currentPage);
     document.title = `${currentPage.title} | CRUDO`;
   }, [location]);
-
   const handleSearch = (query) => {
     setSearchQuery(query);
     console.log("Searching for:", query);
   };
-
   // Check if the current route is an auth route
   const isAuthRoute = authRoutes.includes(location.pathname);
-
   return (
     <Box
       sx={{
         width: "100%",
-        display: "flex",
-
+        height: "100vh",
         fontFamily: "Inter, sans-serif",
-        overflow: "hidden",
-        backgroundColor: "#F9F9F9",
       }}
     >
-      {!isAuthRoute && <Sidebar />}
+      {/* {!isAuthRoute && <Sidebar />} */}
       <Box>
-        <TopNavbar
-          title={pageTitle.title}
-          onSearch={handleSearch}
-          buttontext={pageTitle.buttonText}
-          buttontext2={pageTitle.buttonText2} // ✅ Passing second button text
-        />
-        <Box sx={{ width: "100%" }}>
+        <Sidebar />
+      </Box>
+      <Box
+        sx={{
+          marginLeft: !isAuthRoute ? SIDEBAR_WIDTH : 0,
+          minHeight: "100vh",
+          // display: "flex",
+          height:"100%",
+    
+        }}
+      >
+        {/* TopNavbar - fixed position */}
+        <Box
+          sx={{
+            height: NAVBAR_HEIGHT,
+            // position: "fixed",
+            top: 0,
+            right: 0,
+            left: !isAuthRoute ? SIDEBAR_WIDTH : 0,
+            // zIndex: 900,
+          }}
+        >
+          <TopNavbar
+            title={pageTitle.title}
+            onSearch={handleSearch}
+            buttontext={pageTitle.buttonText}
+            buttontext2={pageTitle.buttonText2}
+          />
+        </Box>
+        {/* Outlet content area */}
+        <Box
+          sx={{
+            flexGrow: 1,
+            marginTop: NAVBAR_HEIGHT,
+            padding: 3,
+            overflow: "auto",
+          }}
+        >
           <Outlet />
         </Box>
       </Box>
     </Box>
   );
 };
-
 export default Layout;

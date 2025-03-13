@@ -53,7 +53,15 @@ const ProductSelection = () => {
   );
 
   // Initialize products on component mount
+  // In your component (like ProductSelection.jsx)
   useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      // Redirect to login if no token exists
+      window.location.href = "/signin";
+      return;
+    }
+
     dispatch(fetchProducts({ search: "", pageSize: 10, page: 1 }));
   }, [dispatch]);
 
@@ -170,8 +178,6 @@ const ProductSelection = () => {
         elevation={0}
         sx={{
           p: 3,
-          ml: "13%",
-          width: "80%",
           border: "1px solid #eee",
           borderRadius: "8px",
         }}
@@ -301,7 +307,7 @@ const ProductSelection = () => {
           {selectedProducts.length > 0 ? (
             selectedProducts.map((product) => (
               <Box
-                key={product.PKID }
+                key={product.PKID}
                 sx={{
                   display: "flex",
                   alignItems: "center",
@@ -342,7 +348,9 @@ const ProductSelection = () => {
                     ₹{(product.MRP * product.quantity).toFixed(2)}
                   </Typography>
                   <IconButton
-                    onClick={() => dispatch(removeSelectedProduct(product.PKID))}
+                    onClick={() =>
+                      dispatch(removeSelectedProduct(product.PKID))
+                    }
                   >
                     <DeleteIcon />
                   </IconButton>

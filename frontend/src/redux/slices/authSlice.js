@@ -11,8 +11,7 @@ const initialState = {
   error: null,
   otpValue: "",
   twoFactorRequired: false,
-  tempEmail: null,
-  tempToken: null, // Add this line
+  tempEmail: null,// Add this line
   twoFactorSetup: {
     loading: false,
     error: null,
@@ -46,9 +45,9 @@ export const loginUser = createAsyncThunk(
 
 export const verifyTwoFactor = createAsyncThunk(
   "auth/verifyTwoFactor",
-  async ({ email, otp, tempToken }, { rejectWithValue }) => {
+  async ({ email, otp }, { rejectWithValue }) => {
     try {
-      const response = await AuthService.verifyTwoFactor(email, otp, tempToken);
+      const response = await AuthService.verifyTwoFactor(email, otp);
       return response;
     } catch (error) {
       return rejectWithValue(error.message || "Verification failed");
@@ -104,6 +103,7 @@ export const enableTwoFactor = createAsyncThunk(
   }
 );
 
+// In authSlice.js
 export const verifyTwoFactorSetup = createAsyncThunk(
   "auth/verifyTwoFactorSetup",
   async (data, { rejectWithValue }) => {
@@ -111,7 +111,11 @@ export const verifyTwoFactorSetup = createAsyncThunk(
       const response = await AuthService.verifyTwoFactorSetup(data);
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      // Properly extract error message for rejection
+      const errorMessage = error?.message || 
+                           (typeof error === 'string' ? error : 
+                           'Verification failed');
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -170,20 +174,16 @@ const authSlice = createSlice({
         if (action.payload.requiresTwoFactor) {
           state.twoFactorRequired = true;
           state.tempEmail = action.payload.email;
-          state.tempToken = action.payload.tempToken; // Store the temporary token
+          state.token = action.payload.otp; // Store the temporary token
           state.isAuthenticated = false;
 
           // Log for debugging
-          console.log(
-            "2FA required, stored tempToken:",
-            action.payload.tempToken
-          );
+          console.log("2FA required, stored tempToken:", action.payload.otp);
         } else {
           state.isAuthenticated = true;
           state.user = action.payload.user;
           state.twoFactorRequired = false;
           state.tempEmail = null;
-          state.tempToken = null;
         }
       })
       .addCase(loginUser.rejected, (state, action) => {
@@ -198,13 +198,13 @@ const authSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
+      // In authSlice.js, update the verifyTwoFactor.fulfilled handler
       .addCase(verifyTwoFactor.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.user;
         state.isAuthenticated = true;
         state.twoFactorRequired = false;
         state.tempEmail = null;
-        state.tempToken = null;
         state.error = null;
       })
       .addCase(verifyTwoFactor.rejected, (state, action) => {
