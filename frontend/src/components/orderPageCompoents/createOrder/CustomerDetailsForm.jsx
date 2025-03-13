@@ -274,7 +274,7 @@ const CustomerDetailsForm = ({ formData, handleChange, setFormData }) => {
 
         {/* Full Name with Search Functionality */}
         <Grid item xs={12}>
-          <InputLabel htmlFor="fullName" required sx={{ mb: 1 }}>
+          <InputLabel htmlFor="fullName" sx={{ mb: 1 }}>
             Full name
           </InputLabel>
           <Box sx={{ position: "relative" }} ref={searchInputRef}>
@@ -354,9 +354,9 @@ const CustomerDetailsForm = ({ formData, handleChange, setFormData }) => {
           </Box>
         </Grid>
 
-        {/* Email and Phone in a row */}
+        {/* Email and Phone */}
         <Grid item xs={12} md={6}>
-          <InputLabel htmlFor="email" required sx={{ mb: 1 }}>
+          <InputLabel htmlFor="email" sx={{ mb: 1 }}>
             Email
           </InputLabel>
           <TextField
@@ -370,7 +370,7 @@ const CustomerDetailsForm = ({ formData, handleChange, setFormData }) => {
           />
         </Grid>
         <Grid item xs={12} md={6}>
-          <InputLabel htmlFor="phoneNumber" required sx={{ mb: 1 }}>
+          <InputLabel htmlFor="phoneNumber" sx={{ mb: 1 }}>
             Phone Number
           </InputLabel>
           <TextField
@@ -384,9 +384,9 @@ const CustomerDetailsForm = ({ formData, handleChange, setFormData }) => {
           />
         </Grid>
 
-        {/* Age and Sex in a row */}
+        {/* Age and Sex */}
         <Grid item xs={12} md={6}>
-          <InputLabel htmlFor="age" required sx={{ mb: 1 }}>
+          <InputLabel htmlFor="age" sx={{ mb: 1 }}>
             Age
           </InputLabel>
           <TextField
@@ -400,7 +400,7 @@ const CustomerDetailsForm = ({ formData, handleChange, setFormData }) => {
           />
         </Grid>
         <Grid item xs={12} md={6}>
-          <InputLabel htmlFor="sex" required sx={{ mb: 1 }}>
+          <InputLabel htmlFor="sex" sx={{ mb: 1 }}>
             Sex
           </InputLabel>
           <FormControl fullWidth>
@@ -422,7 +422,7 @@ const CustomerDetailsForm = ({ formData, handleChange, setFormData }) => {
 
         {/* Address */}
         <Grid item xs={12}>
-          <InputLabel htmlFor="address" required sx={{ mb: 1 }}>
+          <InputLabel htmlFor="address" sx={{ mb: 1 }}>
             Address
           </InputLabel>
           <TextField
@@ -496,7 +496,7 @@ const CustomerDetailsForm = ({ formData, handleChange, setFormData }) => {
 
         {/* Refer by */}
         <Grid item xs={12}>
-          <InputLabel htmlFor="referBy" required sx={{ mb: 1 }}>
+          <InputLabel htmlFor="referBy" sx={{ mb: 1 }}>
             Refer by
           </InputLabel>
           <TextField
