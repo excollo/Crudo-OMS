@@ -1,4 +1,7 @@
 const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
+const { generatePDF } = require("../services/generatePDFService"); 
 const { Order } = require("../models/Order");
 const {
   UnauthorizedError,
@@ -65,11 +68,25 @@ const createOrder = async (orderData) => {
     // Create order in Crudo Platform
     const crudoOrder = await Order.create(orderPayload);
 
+    // Generate PDF
+    const pdfBuffer = await generatePDF(orderPayload);
+    const pdfDir = path.join(__dirname, "../generated_pdfs"); // Set the directory path
+
+    // Ensure the directory exists
+    if (!fs.existsSync(pdfDir)) {
+      fs.mkdirSync(pdfDir, { recursive: true }); // Create the directory if it doesn't exist
+    }
+    // Define the path where PDF will be saved
+    const pdfPath = path.join(pdfDir, `order_${crudoOrder._id}.pdf`);
+    // Write the PDF to the path
+    fs.writeFileSync(pdfPath, pdfBuffer);
+
     return {
       success: true,
       data: {
         crudoOrder,
         swilERPResponse: swilERPResponse.ApiResponse,
+        pdfUrl: `/generated_pdfs/order_${crudoOrder._id}.pdf`, 
       },
     };
   } catch (error) {
