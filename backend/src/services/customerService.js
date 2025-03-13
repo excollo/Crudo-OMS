@@ -45,9 +45,23 @@ const fetchCustomerById = async (id) => {
 
 const createCustomer = async (customerData) => {
   try {
+    // Ensure the data is in the format expected by SwilERP API
+    const swilERPCustomerData = {
+      Customer: customerData.Customer,
+      Email: customerData.Email,
+      Mobile: customerData.Mobile,
+      Address: customerData.Address,
+      Pincode: customerData.Pincode,
+      Alias: customerData.Alias,
+      Station: customerData.Station,
+      Druglicence: customerData.Druglicence || "",
+      Gstno: customerData.Gstno === null ? "" : (customerData.Gstno || ""),
+      PanNo: customerData.PanNo === null ? "" : (customerData.PanNo || ""),
+    };
+
     const response = await axios.post(
       `${process.env.SWILERP_BASE_URL}/api/master/customer/CreateCustomerMobile`,
-      customerData,
+      swilERPCustomerData,
       { headers }
     );
 
@@ -76,8 +90,8 @@ const updateCustomer = async (id, customerData) => {
       Pincode: customerData.pincode || customerData.Pincode,
       Station: customerData.station || customerData.Station,
       Druglicence: customerData.Druglicence || "",
-      Gstno: customerData.Gstno || "",
-      PanNo: customerData.PanNo || "",
+      Gstno: customerData.Gstno === null ? "" : (customerData.Gstno || ""),
+      PanNo: customerData.PanNo === null ? "" : (customerData.PanNo || ""),
     };
     
 

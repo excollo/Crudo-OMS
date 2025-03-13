@@ -13,7 +13,7 @@ import {
   Select,
 } from "@mui/material";
 
-const CustomerDetailsForm = ({ formData, handleChange }) => {
+const CustomerDetailsForm = ({ formData = {}, handleChange }) => {
   return (
     <Paper
       elevation={3}
@@ -23,8 +23,7 @@ const CustomerDetailsForm = ({ formData, handleChange }) => {
         width: "80%",
         height: "100%",
         borderRadius: "1%",
-        boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.05)",
-        boxShadow: "none",
+        boxShadow: "none", // ✅ Removed duplicate
       }}
     >
       <Grid container spacing={2}>
@@ -37,37 +36,29 @@ const CustomerDetailsForm = ({ formData, handleChange }) => {
             justifyContent: "space-between",
           }}
         >
-          <Box>
-            <Typography
-              variant="h6"
-              component="h2"
-              sx={{ fontWeight: "700", color: "#72787F" }}
-            >
-              Customer Details
-            </Typography>
-          </Box>
-          <Box>
-            <Button
-              variant="contained"
-              sx={{
-                fontWeight: "700",
-                color: "#72787F",
-                bgcolor: "#E8EBED",
-                outline: "none",
-                border: "none",
-                "&:focus": { outline: "none" },
-                "&:active": { outline: "none" },
-                "&:hover": { bgcolor: "#e0e0e0" },
-              }}
-            >
-              Update Customer
-            </Button>
-          </Box>
+          <Typography
+            variant="h6"
+            component="h2"
+            sx={{ fontWeight: "700", color: "#72787F" }}
+          >
+            Customer Details
+          </Typography>
+          <Button
+            variant="contained"
+            sx={{
+              fontWeight: "700",
+              color: "#72787F",
+              bgcolor: "#E8EBED",
+              "&:hover": { bgcolor: "#e0e0e0" },
+            }}
+          >
+            Update Customer
+          </Button>
         </Box>
 
         {/* Full Name */}
         <Grid item xs={12}>
-          <InputLabel htmlFor="fullName" required sx={{ mb: 1 }}>
+          <InputLabel htmlFor="fullName" sx={{ mb: 1 }}>
             Full name
           </InputLabel>
           <TextField
@@ -75,15 +66,15 @@ const CustomerDetailsForm = ({ formData, handleChange }) => {
             name="fullName"
             fullWidth
             variant="outlined"
-            value={formData.fullName}
+            value={formData.fullName || ""}
             onChange={handleChange}
             required
           />
         </Grid>
 
-        {/* Email and Phone in a row */}
+        {/* Email and Phone */}
         <Grid item xs={12} md={6}>
-          <InputLabel htmlFor="email" required sx={{ mb: 1 }}>
+          <InputLabel htmlFor="email" sx={{ mb: 1 }}>
             Email
           </InputLabel>
           <TextField
@@ -91,13 +82,13 @@ const CustomerDetailsForm = ({ formData, handleChange }) => {
             name="email"
             fullWidth
             variant="outlined"
-            value={formData.email}
+            value={formData.email || ""}
             onChange={handleChange}
             required
           />
         </Grid>
         <Grid item xs={12} md={6}>
-          <InputLabel htmlFor="phoneNumber" required sx={{ mb: 1 }}>
+          <InputLabel htmlFor="phoneNumber" sx={{ mb: 1 }}>
             Phone Number
           </InputLabel>
           <TextField
@@ -105,15 +96,15 @@ const CustomerDetailsForm = ({ formData, handleChange }) => {
             name="phoneNumber"
             fullWidth
             variant="outlined"
-            value={formData.phoneNumber}
+            value={formData.phoneNumber || ""}
             onChange={handleChange}
             required
           />
         </Grid>
 
-        {/* Age and Sex in a row */}
+        {/* Age and Sex */}
         <Grid item xs={12} md={6}>
-          <InputLabel htmlFor="age" required sx={{ mb: 1 }}>
+          <InputLabel htmlFor="age" sx={{ mb: 1 }}>
             Age
           </InputLabel>
           <TextField
@@ -121,20 +112,20 @@ const CustomerDetailsForm = ({ formData, handleChange }) => {
             name="age"
             fullWidth
             variant="outlined"
-            value={formData.age}
+            value={formData.age || ""}
             onChange={handleChange}
             required
           />
         </Grid>
         <Grid item xs={12} md={6}>
-          <InputLabel htmlFor="sex" required sx={{ mb: 1 }}>
+          <InputLabel htmlFor="sex" sx={{ mb: 1 }}>
             Sex
           </InputLabel>
           <FormControl fullWidth>
             <Select
               id="sex"
               name="sex"
-              value={formData.sex}
+              value={formData.sex || ""}
               onChange={handleChange}
               required
               displayEmpty
@@ -149,7 +140,7 @@ const CustomerDetailsForm = ({ formData, handleChange }) => {
 
         {/* Address */}
         <Grid item xs={12}>
-          <InputLabel htmlFor="address" required sx={{ mb: 1 }}>
+          <InputLabel htmlFor="address" sx={{ mb: 1 }}>
             Address
           </InputLabel>
           <TextField
@@ -159,7 +150,7 @@ const CustomerDetailsForm = ({ formData, handleChange }) => {
             multiline
             rows={4}
             variant="outlined"
-            value={formData.address}
+            value={formData.address || ""}
             onChange={handleChange}
             required
           />
@@ -167,7 +158,7 @@ const CustomerDetailsForm = ({ formData, handleChange }) => {
 
         {/* Refer by */}
         <Grid item xs={12}>
-          <InputLabel htmlFor="referBy" required sx={{ mb: 1 }}>
+          <InputLabel htmlFor="referBy" sx={{ mb: 1 }}>
             Refer by
           </InputLabel>
           <TextField
@@ -175,7 +166,7 @@ const CustomerDetailsForm = ({ formData, handleChange }) => {
             name="referBy"
             fullWidth
             variant="outlined"
-            value={formData.referBy}
+            value={formData.referBy || ""}
             onChange={handleChange}
             required
           />
