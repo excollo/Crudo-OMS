@@ -226,15 +226,18 @@ const CreateCustomerForm = () => {
       errors.Alias = "Alias must be at least 2 characters long";
     }
     
-    
-    
-    // Optional field validations
-    if (formData.Gstno && !/^[0-9A-Z]{15}$/.test(formData.Gstno)) {
-      errors.Gstno = "GST number must be 15 characters (digits and uppercase letters)";
+    // Optional field validations - only validate if not empty
+    if (formData.Gstno && formData.Gstno.trim() !== "") {
+      // GST format: 2 digits, 10 chars, 1 digit, 1 char, 1 digit
+      if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$/.test(formData.Gstno.trim())) {
+        errors.Gstno = "GST number must be in valid format (e.g., 27AAPFU0939F1ZV)";
+      }
     }
     
-    if (formData.PanNo && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.PanNo)) {
-      errors.PanNo = "PAN number must be in format AAAAA9999A";
+    if (formData.PanNo && formData.PanNo.trim() !== "") {
+      if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.PanNo.trim())) {
+        errors.PanNo = "PAN number must be in format AAAAA9999A";
+      }
     }
     
     // Log validation errors for debugging
@@ -277,9 +280,9 @@ const CreateCustomerForm = () => {
         Alias: formData.Alias,
         Station: formData.Station || "",
         Druglicence: formData.Druglicence || "",
-        // Send null for empty GST and PAN to bypass validation
-        Gstno: formData.Gstno && formData.Gstno.trim() !== "" ? formData.Gstno.trim() : null,
-        PanNo: formData.PanNo && formData.PanNo.trim() !== "" ? formData.PanNo.trim() : null,
+        // Only include GST and PAN if they're not empty and valid
+        ...(formData.Gstno && formData.Gstno.trim() !== "" ? { Gstno: formData.Gstno.trim() } : {}),
+        ...(formData.PanNo && formData.PanNo.trim() !== "" ? { PanNo: formData.PanNo.trim() } : {})
       };
       
       console.log("Sending payload:", payload);

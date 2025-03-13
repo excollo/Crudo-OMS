@@ -355,6 +355,7 @@ const CustomerDetailsForm = ({ formData, handleChange, setFormData }) => {
         </Grid>
 
         {/* Email and Phone */}
+        {/* Email and Phone */}
         <Grid item xs={12} md={6}>
           <InputLabel htmlFor="email" sx={{ mb: 1 }}>
             Email
@@ -384,6 +385,7 @@ const CustomerDetailsForm = ({ formData, handleChange, setFormData }) => {
           />
         </Grid>
 
+        {/* Age and Sex */}
         {/* Age and Sex */}
         <Grid item xs={12} md={6}>
           <InputLabel htmlFor="age" sx={{ mb: 1 }}>
